@@ -1,0 +1,2100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Account Ledger — Master Book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --paper:#F6F8FC;
+    --paper-alt:#EBF0F9;
+    --ink:#101828;
+    --ink-soft:#5a6685;
+    --line:#dde5f3;
+    --line-strong:#c3d0e8;
+    --brand:#1d3f7a;
+    --brand-dark:#122a57;
+    --brand-soft:#e8eefb;
+    --debit:#b3271e;
+    --debit-soft:#fbebe9;
+    --credit:#157a4a;
+    --credit-soft:#e6f6ee;
+    --balance:#a6791a;
+    --balance-soft:#faf1da;
+    --danger:#9c2b2b;
+    --heading-bg:#0b1f4d;
+    --heading-border:#081733;
+    --gold:#c9a24b;
+    --gold-soft:#f8f1e0;
+    --purple:#6c4f96;
+    --purple-soft:#f1ecf9;
+    --orange:#c1652f;
+    --orange-soft:#fbeee1;
+    --teal:#158080;
+    --teal-soft:#e3f6f5;
+    --lightblue:#3f7fc4;
+    --lightblue-soft:#eaf3fb;
+    --income-blue:#2f6fb3;
+    --income-blue-soft:#e8f1fb;
+    --darkblue:#14315c;
+    --darkblue-soft:#e7edf8;
+    --card-bg:#ffffff;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --shadow-lg:0 8px 24px rgba(16,24,40,.10), 0 2px 6px rgba(16,24,40,.06);
+    --radius:8px;
+    --radius-sm:5px;
+    --serif:'Source Serif 4', Georgia, serif;
+    --sans:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease:cubic-bezier(.4,0,.2,1);
+  }
+  :root[data-theme="dark"]{
+    --paper:#0b1220;
+    --paper-alt:#111b30;
+    --ink:#e7ecf7;
+    --ink-soft:#93a1c2;
+    --line:#20304f;
+    --line-strong:#2c3e63;
+    --brand:#6f9bef;
+    --brand-dark:#5580d6;
+    --brand-soft:#152438;
+    --debit:#ff7a72;
+    --debit-soft:#2a1518;
+    --credit:#4fd894;
+    --credit-soft:#0e2a1e;
+    --balance:#e7bd57;
+    --balance-soft:#2c2410;
+    --danger:#ff7a72;
+    --heading-bg:#0d1a38;
+    --heading-border:#091326;
+    --gold:#e7bd57;
+    --gold-soft:#241f10;
+    --purple:#b79ae0;
+    --purple-soft:#221c33;
+    --orange:#e5985a;
+    --orange-soft:#2c1f12;
+    --teal:#4fd0c8;
+    --teal-soft:#0e2624;
+    --lightblue:#8cc4ec;
+    --lightblue-soft:#152736;
+    --income-blue:#6fa8e0;
+    --income-blue-soft:#132436;
+    --darkblue:#6f9bef;
+    --darkblue-soft:#152438;
+    --card-bg:#111b30;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+    --shadow-lg:0 12px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;}
+  :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+  html,body{margin:0;padding:0;overflow-x:hidden;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14.5px;line-height:1.5;-webkit-font-smoothing:antialiased;transition:background .25s var(--ease), color .25s var(--ease);}
+  ::selection{background:var(--brand-soft);}
+  button{font-family:inherit;cursor:pointer;}
+  input, select{font-family:inherit;}
+  .app{max-width:1280px;margin:0 auto;padding:22px 20px 60px;}
+
+  /* Masthead */
+  .masthead{border-bottom:2px solid var(--ink);padding-bottom:16px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;}
+  .masthead-left{flex:1;min-width:240px;}
+  .biz-name-input{font-family:var(--serif);font-weight:600;font-size:26px;color:var(--ink);border:none;background:transparent;padding:2px 0;width:100%;max-width:520px;border-bottom:1px solid transparent;}
+  .biz-name-input:hover,.biz-name-input:focus{outline:none;border-bottom:1px dashed var(--line-strong);}
+  .ledger-subtitle{color:var(--ink-soft);font-size:13px;margin-top:4px;}
+  .ledger-date-input{font-family:inherit;font-size:13px;color:var(--ink-soft);border:none;background:transparent;padding:1px 2px;border-radius:3px;}
+  .ledger-date-input:hover, .ledger-date-input:focus{outline:none;background:var(--paper-alt);}
+  .masthead-right{text-align:right;}
+  .grand-total-field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:4px;}
+  .grand-total-field .value{font-weight:700;font-size:22px;font-variant-numeric:tabular-nums;color:var(--darkblue);}
+  .grand-total-field .value.neg{color:var(--debit);}
+  .gt-breakdown{margin-top:8px;max-height:130px;overflow-y:auto;width:min(200px,60vw);border-top:1px solid var(--line-strong);padding-top:6px;}
+  .gt-row{display:flex;justify-content:space-between;gap:14px;font-size:12px;padding:2px 0;color:var(--ink-soft);}
+  .gt-row span:first-child{font-weight:600;color:var(--ink);}
+  .gt-row span:last-child{font-variant-numeric:tabular-nums;}
+  .acc-type-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:3px 10px;border-radius:20px;background:var(--brand-soft);color:var(--brand-dark);border:1px solid var(--line-strong);}
+  .rule-banner{display:flex;align-items:flex-start;gap:8px;background:var(--balance-soft);border:1px solid var(--line-strong);border-radius:var(--radius);padding:8px 10px;font-size:12.5px;color:var(--ink);margin-bottom:12px;}
+  .rule-banner b{color:var(--balance);}
+  .rule-hint{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+  .type-pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px;background:var(--brand-soft);color:var(--brand-dark);white-space:nowrap;}
+
+  /* Reports: Trial Balance / P&L / Balance Sheet */
+  .report-meta{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+  .balance-check{display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:var(--radius);font-size:13px;font-weight:600;margin-bottom:14px;border:1px solid;}
+  .balance-check.ok{background:var(--credit-soft);color:var(--credit);border-color:var(--credit);}
+  .balance-check.bad{background:var(--debit-soft);color:var(--debit);border-color:var(--debit);}
+  tr.group-row td{background:var(--paper-alt);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--brand-dark);}
+  td.indent-cell{padding-left:26px !important;}
+  tr.subtotal-row td{font-weight:700;border-top:1px solid var(--line-strong);}
+  tr.grand-row td{font-weight:700;font-size:14.5px;border-top:2px solid var(--ink) !important;border-bottom:2px solid var(--ink) !important;}
+  tr.profit-row td{font-weight:700;font-size:15px;}
+  tr.profit-row.pos td.num{color:var(--credit);}
+  tr.profit-row.neg td.num{color:var(--debit);}
+  .report-section-title{font-weight:700;font-size:13.5px;margin:16px 0 6px;color:var(--brand-dark);}
+  .report-section-title:first-child{margin-top:0;}
+
+  /* Toolbar */
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center;}
+  .btn{border:1px solid var(--line-strong);background:#fff;color:var(--ink);padding:7px 13px;border-radius:var(--radius);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:.15s;}
+  .btn:hover{border-color:var(--brand);color:var(--brand-dark);background:var(--brand-soft);}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;}
+  .btn.primary:hover{background:var(--brand-dark);}
+  .btn.danger{border-color:var(--debit);color:var(--debit);}
+  .btn.danger:hover{background:var(--debit-soft);}
+  .btn.small{padding:4px 9px;font-size:12px;}
+  .spacer{flex:1;}
+
+  .search-box{position:relative;flex:1;min-width:160px;max-width:280px;}
+  .search-box input{width:100%;padding:7px 10px 7px 28px;border:1px solid var(--line-strong);border-radius:var(--radius);font-size:13px;background:#fff;}
+  .search-box svg{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--ink-soft);}
+
+  /* Tabs */
+  .tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);padding-bottom:0;margin-bottom:16px;}
+  .tab{padding:9px 16px;font-size:13.5px;font-weight:600;color:var(--ink-soft);border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0;}
+  .tab.active{color:var(--brand-dark);border-bottom-color:var(--brand);}
+  .tab:hover{color:var(--ink);}
+  .tab.master-tab{color:var(--brand-dark);}
+
+  .panel{background:#fff;border:1px solid var(--line);border-radius:6px;padding:18px;}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .print-date-tag{display:none;}
+  .panel-title{font-family:var(--serif);font-size:19px;font-weight:600;}
+  .totals-row{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px;}
+  .total-chip{border-radius:var(--radius);padding:8px 14px;min-width:110px;}
+  .total-chip .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;opacity:.75;}
+  .total-chip .val{font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;}
+  .total-chip.debit{background:var(--debit-soft);color:var(--debit);}
+  .total-chip.credit{background:var(--credit-soft);color:var(--credit);}
+  .total-chip.balance{background:var(--balance-soft);color:var(--balance);}
+
+  .table-wrap{overflow-x:auto;border:1px solid var(--ink);border-radius:2px;}
+  table{width:100%;border-collapse:collapse;min-width:640px;table-layout:fixed;}
+  td, th{overflow:hidden;text-overflow:ellipsis;}
+  thead th{text-align:center;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:#ffffff;font-weight:700;background:var(--heading-bg);border:1px solid var(--heading-border);padding:9px 10px;white-space:nowrap;}
+  tbody td.num, tfoot td.num{text-align:right !important;}
+  tbody td{padding:8px 10px;border:1px solid var(--line);font-size:13.5px;vertical-align:top;}
+  tbody tr:nth-child(even){background:#fbfaf6;}
+  tbody tr:hover{background:var(--paper-alt);}
+  tbody tr.opening{background:var(--balance-soft);font-weight:600;}
+  td.debit-cell{color:var(--debit);}
+  td.credit-cell{color:var(--credit);}
+  td.balance-cell{color:var(--balance);font-weight:600;}
+  td.actions, th.actions{white-space:nowrap;text-align:right;overflow:visible !important;text-overflow:clip !important;}
+  tfoot td{border:1px solid var(--ink);padding:9px 10px;background:var(--paper-alt);font-size:13.5px;}
+  .row-actions{display:flex;align-items:center;justify-content:flex-end;gap:2px;flex-wrap:nowrap;}
+  .icon-btn{border:none;background:transparent;padding:5px 6px;border-radius:4px;color:var(--ink-soft);font-size:15px;line-height:1;flex-shrink:0;}
+  .icon-btn:hover{background:var(--paper-alt);color:var(--ink);}
+  .icon-btn.del:hover{color:var(--danger);}
+  .empty-msg{padding:30px 10px;text-align:center;color:var(--ink-soft);font-size:13.5px;}
+
+  /* Master table row clickable */
+  tr.acct-row{cursor:pointer;}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(38,36,29,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;}
+  .modal{background:#fff;border-radius:8px;padding:22px;width:100%;max-width:420px;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+  .modal h3{font-family:var(--serif);margin:0 0 14px;font-size:18px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:4px;}
+  .field input, .field select{width:100%;padding:8px 10px;border:1px solid var(--line-strong);border-radius:var(--radius);font-size:13.5px;}
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .modal-msg{font-size:13px;color:var(--ink-soft);margin-bottom:14px;}
+
+  /* ============ PREMIUM SHELL: sidebar + topbar (additive layout, wraps existing elements) ============ */
+  .app-shell{display:flex;align-items:stretch;min-height:100vh;gap:0;max-width:1440px;margin:0 auto;}
+  .sidebar{width:230px;flex-shrink:0;background:var(--heading-bg);color:#fff;display:flex;flex-direction:column;padding:18px 12px;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;transition:transform .25s var(--ease);}
+  .sidebar-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 18px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:12px;}
+  .sidebar-brand .brand-mark{font-size:22px;line-height:1;}
+  .sidebar-brand .brand-name{font-family:var(--serif);font-weight:600;font-size:15px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;}
+  .sidebar-brand .brand-sub{font-size:10.5px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;}
+  .sidebar .tabs{display:flex;flex-direction:column;gap:2px;border-bottom:none;overflow-x:visible;margin-bottom:0;flex:1;}
+  .sidebar .tab{color:rgba(255,255,255,.72);border-bottom:none;border-radius:var(--radius-sm);padding:10px 12px;white-space:normal;display:flex;align-items:center;gap:8px;font-size:13px;transition:background .15s var(--ease), color .15s var(--ease), transform .15s var(--ease);}
+  .sidebar .tab:hover{background:rgba(255,255,255,.08);color:#fff;transform:translateX(2px);}
+  .sidebar .tab.active{background:var(--gold);color:#1a1400;font-weight:700;}
+  .sidebar-footer{border-top:1px solid rgba(255,255,255,.12);padding-top:10px;margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+  .sidebar-footer .btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.18);color:#fff;justify-content:center;}
+  .sidebar-footer .btn:hover{background:rgba(255,255,255,.14);color:#fff;}
+  .sidebar-toggle-mobile{display:none;border:1px solid var(--line-strong);background:var(--card-bg);border-radius:var(--radius-sm);width:38px;height:38px;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .shell-main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .content-area{padding:18px 22px 50px;flex:1;}
+  .content-area .panel{animation:fadeSlideIn .28s var(--ease);}
+  @keyframes fadeSlideIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  .topbar{position:sticky;top:0;z-index:10;background:var(--card-bg);border-bottom:1px solid var(--line);padding:14px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .topbar .masthead-left{flex:1;min-width:200px;}
+  .topbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0;}
+  .icon-circle-btn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line-strong);background:var(--paper-alt);display:inline-flex;align-items:center;justify-content:center;font-size:16px;position:relative;flex-shrink:0;color:var(--ink);transition:background .15s var(--ease), transform .15s var(--ease);}
+  .icon-circle-btn:hover{background:var(--brand-soft);transform:translateY(-1px);}
+  .notif-dot{position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--debit);border:1.5px solid var(--card-bg);}
+  .profile-chip{width:38px;height:38px;border-radius:50%;background:var(--brand);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+
+  /* Buttons / cards: hover-lift + smooth transitions (extends existing .btn without changing its selector behavior) */
+  .btn{transition:background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease), transform .1s var(--ease), box-shadow .15s var(--ease);}
+  .btn:active{transform:scale(.97);}
+  .panel{transition:box-shadow .2s var(--ease);}
+  .icon-btn{transition:background .15s var(--ease), color .15s var(--ease), transform .12s var(--ease);}
+  .icon-btn:hover{transform:scale(1.08);}
+  tbody tr{transition:background .12s var(--ease);}
+
+  /* Theme toggle switch */
+  .theme-toggle-btn{display:flex;align-items:center;gap:8px;}
+
+  /* ============ KPI CARDS ============ */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(min(170px,100%),1fr));gap:12px;margin-bottom:20px;}
+  .kpi-card{background:var(--card-bg);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);transition:box-shadow .2s var(--ease), transform .2s var(--ease);position:relative;overflow:hidden;animation:fadeSlideIn .3s var(--ease) backwards;}
+  .kpi-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);}
+  .kpi-card .kpi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .kpi-card .kpi-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .kpi-card .kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:600;margin-bottom:4px;}
+  .kpi-card .kpi-value{font-weight:700;font-size:19px;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .kpi-card{border-left:4px solid transparent;}
+  .kpi-card.c-blue{border-left-color:var(--income-blue);}
+  .kpi-card.c-blue .kpi-icon{background:var(--income-blue-soft);}
+  .kpi-card.c-blue .kpi-value{color:var(--income-blue);}
+  .kpi-card.c-red{border-left-color:var(--debit);}
+  .kpi-card.c-red .kpi-icon{background:var(--debit-soft);}
+  .kpi-card.c-red .kpi-value{color:var(--debit);}
+  .kpi-card.c-green{border-left-color:var(--credit);}
+  .kpi-card.c-green .kpi-icon{background:var(--credit-soft);}
+  .kpi-card.c-green .kpi-value{color:var(--credit);}
+  .kpi-card.c-gold{border-left-color:var(--gold);}
+  .kpi-card.c-gold .kpi-icon{background:var(--gold-soft);}
+  .kpi-card.c-gold .kpi-value{color:var(--gold);}
+  .kpi-card.c-purple{border-left-color:var(--purple);}
+  .kpi-card.c-purple .kpi-icon{background:var(--purple-soft);}
+  .kpi-card.c-purple .kpi-value{color:var(--purple);}
+  .kpi-card.c-orange{border-left-color:var(--orange);}
+  .kpi-card.c-orange .kpi-icon{background:var(--orange-soft);}
+  .kpi-card.c-orange .kpi-value{color:var(--orange);}
+  .kpi-card.c-teal{border-left-color:var(--teal);}
+  .kpi-card.c-teal .kpi-icon{background:var(--teal-soft);}
+  .kpi-card.c-teal .kpi-value{color:var(--teal);}
+  .kpi-card.c-lightblue{border-left-color:var(--lightblue);}
+  .kpi-card.c-lightblue .kpi-icon{background:var(--lightblue-soft);}
+  .kpi-card.c-lightblue .kpi-value{color:var(--lightblue);}
+  .kpi-card.c-darkblue{border-left-color:var(--darkblue);}
+  .kpi-card.c-darkblue .kpi-icon{background:var(--darkblue-soft);}
+  .kpi-card.c-darkblue .kpi-value{color:var(--darkblue);}
+
+  .chart-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(min(320px,100%),1fr));gap:16px;margin-bottom:20px;}
+  .chart-card{background:var(--card-bg);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);}
+  .chart-card h4{margin:0 0 12px;font-size:13.5px;font-weight:700;color:var(--ink);}
+  .chart-card canvas{max-height:220px;}
+
+  /* ============ TOASTS ============ */
+  .toast-container{position:fixed;top:16px;right:16px;z-index:999;display:flex;flex-direction:column;gap:8px;max-width:320px;}
+  .toast{background:var(--card-bg);border:1px solid var(--line-strong);border-left:4px solid var(--brand);border-radius:var(--radius-sm);padding:10px 14px;box-shadow:var(--shadow-lg);font-size:13px;color:var(--ink);animation:toastIn .25s var(--ease);}
+  .toast.success{border-left-color:var(--credit);}
+  .toast.error{border-left-color:var(--debit);}
+  .toast.info{border-left-color:var(--balance);}
+  .toast.fade-out{animation:toastOut .25s var(--ease) forwards;}
+  @keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+  @keyframes toastOut{from{opacity:1;}to{opacity:0;transform:translateX(20px);}}
+
+  /* ============ PAGINATION + SORTABLE HEADERS ============ */
+  .pagination{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:10px 2px;font-size:12.5px;color:var(--ink-soft);flex-wrap:wrap;}
+  .pagination .pg-info{white-space:nowrap;}
+  .table-toolbar{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;color:var(--ink-soft);}
+  .table-toolbar select{padding:4px 6px;border:1px solid var(--line-strong);border-radius:var(--radius-sm);font-size:12.5px;}
+  th.sortable{cursor:pointer;user-select:none;}
+  th.sortable:hover{background:var(--brand-dark);}
+  th.sortable .sort-arrow{opacity:.6;font-size:10px;margin-left:3px;}
+
+  /* Loading spinner */
+  .spinner-inline{display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:-2px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;color:var(--ink-soft);gap:12px;}
+  .loading-screen .spinner-big{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite;}
+
+  @media (max-width:900px){
+    .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-100%);box-shadow:var(--shadow-lg);}
+    .sidebar.open{transform:translateX(0);}
+    .sidebar-toggle-mobile{display:inline-flex;}
+    .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:35;}
+    .sidebar-backdrop.open{display:block;}
+  }
+
+  @media (max-width:720px){
+    .masthead{flex-direction:column;align-items:flex-start;}
+    .masthead-right{text-align:left;width:100%;}
+    .panel{padding:12px;}
+    .content-area{padding:12px;}
+    .topbar{padding:10px 14px;}
+    /* Table stays a real grid (same as print) — just scrolls sideways on small screens */
+  }
+  @media (max-width:480px){
+    .field-row{flex-wrap:wrap;}
+    .field-row .field{min-width:130px;}
+    .jv-line{flex-wrap:wrap;}
+    .jv-line .field{min-width:130px;}
+    .kpi-card .kpi-value{font-size:17px;}
+    .totals-row{gap:10px;}
+    .total-chip{min-width:0;flex:1 1 100px;}
+  }
+  @media print{
+    @page{ margin:10mm; }
+    body{background:#fff;font-size:12px;margin:0;}
+    .app{max-width:100%;padding:0;}
+    .toolbar,.tabs,.btn,.actions,.search-box,.gt-breakdown,.acc-type-badge,.rule-banner,.sidebar,.sidebar-toggle-mobile,.sidebar-backdrop,.toast-container,.topbar-actions,.icon-circle-btn,.profile-chip,.app-tagline,.currency-select,.table-toolbar,.pagination{display:none !important;}
+    .app-shell{display:block;max-width:100%;}
+    .shell-main{display:block;}
+    .content-area{padding:0;}
+    .topbar{position:static;border-bottom:2px solid #000;box-shadow:none;}
+    .masthead{border-bottom:2px solid #000;}
+    .biz-name-input{border:none !important;}
+    .ledger-date-input{-webkit-appearance:none;appearance:none;}
+    .panel{border:none;padding:0;margin:0 auto;}
+    .panel-head{display:block;}
+    .print-date-tag{display:block !important;font-size:11.5px;color:#555;margin-top:2px;}
+    .table-wrap{border:1px solid #000;overflow:visible;width:100%;}
+    /* Auto layout (instead of the screen's fixed layout) lets the hidden actions
+       column truly collapse to zero width instead of reserving blank space for it. */
+    table{min-width:0;width:100%;table-layout:auto !important;}
+    col.col-actions{display:none !important;width:0 !important;}
+    tbody td, tfoot td{border-color:#000 !important;}
+    thead th{border-color:#000 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+
+<script>
+  // Apply saved theme immediately (before first paint) to avoid a flash of the wrong theme.
+  try{
+    const savedTheme = localStorage.getItem('ledgerTheme');
+    if(savedTheme==='dark') document.documentElement.setAttribute('data-theme','dark');
+  }catch(e){}
+</script>
+
+<div class="app" id="app"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ============ FIREBASE (login + shared cloud data) ============ */
+const firebaseConfig = {
+  apiKey: "AIzaSyAuFdEng0n6kANnyjXKzr10qkZZgZ0qGIw",
+  authDomain: "accounts-reports-d4f5e.firebaseapp.com",
+  projectId: "accounts-reports-d4f5e",
+  storageBucket: "accounts-reports-d4f5e.firebasestorage.app",
+  messagingSenderId: "277597868930",
+  appId: "1:277597868930:web:dcd9d7e8d487b18022f59b"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const LEDGER_DOC = db.collection('ledger').doc('main');
+
+/* ============ STATE ============ */
+let state = null;
+let currentUser = null;
+let unsubscribeLedger = null;
+let view = { mode:'dashboard', accountId:null, search:'' }; // mode: 'dashboard' | 'master' | 'journal' | 'account' | ...
+
+function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+function defaultState(){
+  return {
+    companyName: 'My Company',
+    ledgerDate: todayISO(),
+    currency: '$',
+    accounts: [],
+    journal: [],
+    journalSeq: 0
+  };
+}
+
+function saveState(){
+  if(!state) return;
+  LEDGER_DOC.set(state).catch(e=> console.error('Save failed', e));
+}
+
+function initAuth(){
+  auth.onAuthStateChanged(user=>{
+    currentUser = user;
+    if(unsubscribeLedger){ unsubscribeLedger(); unsubscribeLedger = null; }
+    if(user){
+      attachLedgerListener();
+    } else {
+      state = null;
+      render();
+    }
+  });
+}
+
+function attachLedgerListener(){
+  unsubscribeLedger = LEDGER_DOC.onSnapshot(docSnap=>{
+    state = docSnap.exists ? docSnap.data() : defaultState();
+    if(!docSnap.exists){ LEDGER_DOC.set(state).catch(e=>console.error(e)); }
+    loadStateDefaults();
+    render();
+  }, err=>{
+    console.error('Ledger listen failed', err);
+    document.getElementById('app').innerHTML = `<div style="padding:60px 20px;text-align:center;color:var(--debit);">Could not load the ledger — check your internet connection or Firestore access rules.</div>`;
+  });
+}
+
+function renderAuthScreen(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+  <div style="max-width:380px;margin:70px auto 0;padding:0 16px;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="font-family:var(--serif);font-weight:600;font-size:26px;">Account Ledger</div>
+      <div style="color:var(--ink-soft);font-size:13px;margin-top:4px;">Sign in to access the shared company ledger</div>
+    </div>
+    <div class="panel">
+      <div class="field"><label>Email</label><input id="auth_email" type="email" placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input id="auth_password" type="password" placeholder="At least 6 characters"></div>
+      <div id="auth_error" style="color:var(--debit);font-size:12.5px;margin:-2px 0 10px;"></div>
+      <button class="btn primary" id="auth_login" style="width:100%;justify-content:center;margin-bottom:8px;">Log In</button>
+      <button class="btn" id="auth_signup" style="width:100%;justify-content:center;">Create Account</button>
+    </div>
+  </div>`;
+  const emailEl = document.getElementById('auth_email');
+  const passEl = document.getElementById('auth_password');
+  const errEl = document.getElementById('auth_error');
+  function showErr(e){ errEl.textContent = (e && e.message) ? e.message : 'Something went wrong.'; }
+  document.getElementById('auth_login').addEventListener('click', ()=>{
+    errEl.textContent='';
+    auth.signInWithEmailAndPassword(emailEl.value.trim(), passEl.value).catch(showErr);
+  });
+  document.getElementById('auth_signup').addEventListener('click', ()=>{
+    errEl.textContent='';
+    if(passEl.value.length<6){ errEl.textContent='Password must be at least 6 characters.'; return; }
+    auth.createUserWithEmailAndPassword(emailEl.value.trim(), passEl.value).catch(showErr);
+  });
+}
+
+/* ============ CALCULATIONS (mirrors the Excel formulas) ============ */
+// Each account.entries[0] is always the OPENING BALANCE row (locked description, editable debit amount).
+// Balance formula per row: bal = prevBal + debit - credit  (matches F6 = F5+D6-E6 etc.)
+// Totals: totalDebit = SUM(all debit), totalCredit = SUM(all credit), totalBalance = totalDebit - totalCredit
+function computeAccount(acc){
+  let running = 0, totalDebit = 0, totalCredit = 0;
+  const rows = acc.entries.map((e,i)=>{
+    const debit = Number(e.debit)||0;
+    const credit = Number(e.credit)||0;
+    running += debit - credit;
+    totalDebit += debit;
+    totalCredit += credit;
+    return { ...e, srNo: i+1, balance: running };
+  });
+  return { rows, totalDebit, totalCredit, totalBalance: totalDebit - totalCredit };
+}
+
+function grandTotal(){
+  return state.accounts.reduce((sum,acc)=> sum + computeAccount(acc).totalBalance, 0);
+}
+
+/* ============ DOUBLE-ENTRY JOURNAL (professional posting layer) ============ */
+// A journal voucher holds 2+ lines that must balance (total debit === total credit).
+// Posting a voucher writes one ledger row into each named account, all tagged with
+// the same voucherNo/journalId so they can be traced and reversed together.
+function postJournalVoucher({date, narration, lines}){
+  const voucherNo = nextVoucherNo();
+  const journalId = uid();
+  lines.forEach(line=>{
+    const acc = state.accounts.find(a=>a.id===line.accountId);
+    if(!acc) return;
+    acc.entries.push({
+      id: uid(),
+      date,
+      description: narration,
+      debit: line.debit || null,
+      credit: line.credit || null,
+      voucherNo, journalId
+    });
+  });
+  state.journal.push({ id: journalId, voucherNo, date, narration, lines, createdAt: Date.now() });
+  saveState();
+  return voucherNo;
+}
+function deleteJournalVoucher(journalId){
+  state.accounts.forEach(acc=>{ acc.entries = acc.entries.filter(e=>e.journalId!==journalId); });
+  state.journal = state.journal.filter(j=>j.id!==journalId);
+  saveState();
+}
+function journalLineSum(lines, key){
+  return lines.reduce((s,l)=> s + (Number(l[key])||0), 0);
+}
+
+/* ============ FORMAT HELPERS ============ */
+function fmt(n){
+  n = Number(n)||0;
+  const sym = (state && state.currency) ? state.currency : '';
+  const sign = n<0 ? '-' : '';
+  return sign + sym + Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function nextVoucherNo(){
+  state.journalSeq = (state.journalSeq||0) + 1;
+  return 'JV-' + String(state.journalSeq).padStart(4,'0');
+}
+function fmtDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso+'T00:00:00');
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('en-US', {year:'numeric', month:'short', day:'2-digit'});
+}
+function escapeHtml(str){
+  return String(str==null?'':str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============ TOAST NOTIFICATIONS ============ */
+function showToast(message, type){
+  const container = document.getElementById('toastContainer');
+  if(!container) return;
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type||'info');
+  el.textContent = message;
+  container.appendChild(el);
+  setTimeout(()=>{
+    el.classList.add('fade-out');
+    setTimeout(()=> el.remove(), 250);
+  }, 3200);
+}
+
+/* ============ THEME (light / dark) — a per-device UI preference only, not ledger data ============ */
+function getTheme(){
+  try{ return localStorage.getItem('ledgerTheme') === 'dark' ? 'dark' : 'light'; }catch(e){ return 'light'; }
+}
+function setTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme==='dark' ? 'dark' : 'light');
+  try{ localStorage.setItem('ledgerTheme', theme); }catch(e){}
+}
+function toggleTheme(){
+  setTheme(getTheme()==='dark' ? 'light' : 'dark');
+  render();
+}
+
+/* ============ THE 3 GOLDEN RULES OF ACCOUNTING ============ */
+const GOLDEN_RULES = {
+  personal: {
+    label: 'Personal Account',
+    rule: 'Debit the receiver, Credit the giver.',
+    hint: 'For accounts of people, firms, companies & organisations.'
+  },
+  real: {
+    label: 'Real Account',
+    rule: 'Debit what comes in, Credit what goes out.',
+    hint: 'For assets — cash, bank, goods, furniture, property, etc.'
+  },
+  nominal: {
+    label: 'Nominal Account',
+    rule: 'Debit all expenses & losses, Credit all incomes & gains.',
+    hint: 'For expenses, losses, incomes & gains — rent, salary, sales, interest, etc.'
+  }
+};
+function goldenRule(type){
+  return GOLDEN_RULES[type] || GOLDEN_RULES.personal;
+}
+
+/* ============ REPORT CATEGORIES (drives Trial Balance / P&L / Balance Sheet) ============ */
+// Every account also carries a "category" — which report line it belongs to.
+// This is separate from the golden-rule "type" above and does not change it.
+const ACCOUNT_CATEGORIES = {
+  'asset-cash':          {group:'asset',     label:'Cash'},
+  'asset-bank':          {group:'asset',     label:'Bank'},
+  'asset-receivable':    {group:'asset',     label:'Accounts Receivable'},
+  'asset-other-current': {group:'asset',     label:'Other Current Asset'},
+  'asset-fixed':         {group:'asset',     label:'Fixed Asset'},
+  'asset-other':         {group:'asset',     label:'Other Asset'},
+  'liability-payable':   {group:'liability', label:'Accounts Payable'},
+  'liability-loan':      {group:'liability', label:'Loan / Borrowing'},
+  'liability-other':     {group:'liability', label:'Other Liability'},
+  'equity-capital':      {group:'equity',    label:'Capital'},
+  'equity-retained':     {group:'equity',    label:'Retained Earnings'},
+  'income':              {group:'income',    label:'Income / Revenue'},
+  'expense-cogs':        {group:'expense',   label:'Expense \u2014 Cost of Goods Sold'},
+  'expense-opex':        {group:'expense',   label:'Expense \u2014 Operating'}
+};
+const CATEGORY_GROUP_LABELS = {asset:'Assets', liability:'Liabilities', equity:'Equity', income:'Income', expense:'Expenses'};
+const CATEGORY_GROUP_ORDER = ['asset','liability','equity','income','expense'];
+
+function categoryInfo(cat){ return ACCOUNT_CATEGORIES[cat] || ACCOUNT_CATEGORIES['asset-other']; }
+
+// One-time, automatic guess for accounts created before categories existed —
+// based on the golden-rule type and the natural sign of its balance.
+// The user can always correct it from the account's edit screen.
+function inferCategory(acc){
+  const bal = computeAccount(acc).totalBalance; // debit - credit
+  const n = (acc.name||'').toLowerCase();
+  if(acc.type === 'real'){
+    if(n.includes('bank')) return 'asset-bank';
+    if(n.includes('cash')) return 'asset-cash';
+    return 'asset-other';
+  }
+  if(acc.type === 'nominal'){
+    return bal <= 0 ? 'income' : 'expense-opex';
+  }
+  return bal >= 0 ? 'asset-receivable' : 'liability-payable';
+}
+
+function categorySelectHtml(id, selected){
+  let html = `<select id="${id}">`;
+  CATEGORY_GROUP_ORDER.forEach(g=>{
+    html += `<optgroup label="${CATEGORY_GROUP_LABELS[g]}">`;
+    Object.keys(ACCOUNT_CATEGORIES).forEach(key=>{
+      const info = ACCOUNT_CATEGORIES[key];
+      if(info.group===g){
+        html += `<option value="${key}" ${selected===key?'selected':''}>${info.label}</option>`;
+      }
+    });
+    html += `</optgroup>`;
+  });
+  html += `</select>`;
+  return html;
+}
+
+/* ============ FINANCIAL REPORT CALCULATIONS ============ */
+// Trial Balance: every account's net balance split into its natural Debit or Credit column.
+function computeTrialBalance(){
+  const EPS = 0.005;
+  const rows = state.accounts
+    .map(acc=>{
+      const bal = computeAccount(acc).totalBalance;
+      return { name: acc.name, debit: bal>0?bal:0, credit: bal<0?-bal:0 };
+    })
+    .filter(r=> Math.abs(r.debit-r.credit) > EPS || r.debit>EPS || r.credit>EPS);
+  const totalDebit = rows.reduce((s,r)=>s+r.debit,0);
+  const totalCredit = rows.reduce((s,r)=>s+r.credit,0);
+  return { rows, totalDebit, totalCredit, balanced: Math.abs(totalDebit-totalCredit) < EPS };
+}
+
+// Profit & Loss: Income less Cost of Goods Sold = Gross Profit; less Operating Expenses = Net Profit.
+function computePnL(){
+  const byCategory = (cat)=> state.accounts.filter(a=>(a.category||inferCategory(a))===cat);
+
+  const incomeAccounts = byCategory('income').map(a=>({name:a.name, amount: computeAccount(a).totalCredit - computeAccount(a).totalDebit}));
+  const cogsAccounts    = byCategory('expense-cogs').map(a=>({name:a.name, amount: computeAccount(a).totalDebit - computeAccount(a).totalCredit}));
+  const opexAccounts    = byCategory('expense-opex').map(a=>({name:a.name, amount: computeAccount(a).totalDebit - computeAccount(a).totalCredit}));
+
+  const totalIncome = incomeAccounts.reduce((s,a)=>s+a.amount,0);
+  const totalCogs   = cogsAccounts.reduce((s,a)=>s+a.amount,0);
+  const totalOpex   = opexAccounts.reduce((s,a)=>s+a.amount,0);
+
+  const grossProfit = totalIncome - totalCogs;
+  const netProfit = grossProfit - totalOpex;
+
+  return { incomeAccounts, cogsAccounts, opexAccounts, totalIncome, totalCogs, totalOpex, grossProfit, netProfit };
+}
+
+// Balance Sheet: Assets vs Liabilities + Equity (equity automatically includes the P&L net profit as Retained Earnings).
+function computeBalanceSheet(){
+  const EPS = 0.005;
+  const byCategory = (cat)=> state.accounts.filter(a=>(a.category||inferCategory(a))===cat);
+
+  function assetGroup(cat){
+    const rows = byCategory(cat).map(a=>({name:a.name, amount: computeAccount(a).totalDebit - computeAccount(a).totalCredit}))
+      .filter(r=>Math.abs(r.amount)>EPS);
+    return { rows, subtotal: rows.reduce((s,r)=>s+r.amount,0) };
+  }
+  function liabilityGroup(cat){
+    const rows = byCategory(cat).map(a=>({name:a.name, amount: computeAccount(a).totalCredit - computeAccount(a).totalDebit}))
+      .filter(r=>Math.abs(r.amount)>EPS);
+    return { rows, subtotal: rows.reduce((s,r)=>s+r.amount,0) };
+  }
+
+  const assets = {
+    cash: assetGroup('asset-cash'),
+    bank: assetGroup('asset-bank'),
+    receivable: assetGroup('asset-receivable'),
+    otherCurrent: assetGroup('asset-other-current'),
+    fixed: assetGroup('asset-fixed'),
+    other: assetGroup('asset-other')
+  };
+  const totalAssets = Object.values(assets).reduce((s,g)=>s+g.subtotal,0);
+
+  const liabilities = {
+    payable: liabilityGroup('liability-payable'),
+    loan: liabilityGroup('liability-loan'),
+    other: liabilityGroup('liability-other')
+  };
+  const totalLiabilities = Object.values(liabilities).reduce((s,g)=>s+g.subtotal,0);
+
+  const capitalGroup = liabilityGroup('equity-capital');
+  const retainedManual = liabilityGroup('equity-retained');
+  const netProfit = computePnL().netProfit;
+  const retainedTotal = retainedManual.subtotal + netProfit;
+
+  const totalEquity = capitalGroup.subtotal + retainedTotal;
+  const totalLiabPlusEquity = totalLiabilities + totalEquity;
+
+  return {
+    assets, totalAssets,
+    liabilities, totalLiabilities,
+    capitalGroup, retainedManual, netProfit, retainedTotal, totalEquity,
+    totalLiabPlusEquity,
+    balanced: Math.abs(totalAssets - totalLiabPlusEquity) < 0.01
+  };
+}
+
+/* ============ DASHBOARD SUMMARY ============ */
+function computeDashboard(){
+  const b = computeBalanceSheet();
+  const p = computePnL();
+  const cashBank = b.assets.cash.subtotal + b.assets.bank.subtotal;
+  const groupTotals = [
+    { key:'asset', label:'Assets', value: b.totalAssets, color:'var(--credit)' },
+    { key:'liability', label:'Liabilities', value: b.totalLiabilities, color:'var(--debit)' },
+    { key:'equity', label:'Equity', value: b.totalEquity, color:'var(--purple)' },
+    { key:'income', label:'Income', value: p.totalIncome, color:'var(--income-blue)' },
+    { key:'expense', label:'Expenses', value: p.totalCogs + p.totalOpex, color:'var(--orange)' }
+  ];
+  return { totalAssets:b.totalAssets, totalLiabilities:b.totalLiabilities, totalEquity:b.totalEquity,
+    totalIncome:p.totalIncome, totalExpenses:p.totalCogs+p.totalOpex,
+    receivables: b.assets.receivable.subtotal, payables: b.liabilities.payable.subtotal,
+    netProfit:p.netProfit, cashBank, balanced:b.balanced, accountCount: state.accounts.length,
+    voucherCount: state.journal.length, groupTotals };
+}
+
+// Builds month-by-month Income / Expense / cumulative Cash figures from every
+// posted ledger entry's date — purely derived/read-only, used only for the dashboard charts.
+function computeMonthlySeries(){
+  const map = {};
+  const cashBankIds = new Set(state.accounts.filter(a=>{
+    const cat = a.category || inferCategory(a);
+    return cat==='asset-cash' || cat==='asset-bank';
+  }).map(a=>a.id));
+  state.accounts.forEach(acc=>{
+    const cat = acc.category || inferCategory(acc);
+    acc.entries.forEach(e=>{
+      if(!e.date) return;
+      const key = e.date.slice(0,7);
+      if(!map[key]) map[key] = {income:0, expense:0, cashDelta:0};
+      const debit = Number(e.debit)||0, credit = Number(e.credit)||0;
+      if(cat==='income') map[key].income += credit - debit;
+      if(cat==='expense-cogs' || cat==='expense-opex') map[key].expense += debit - credit;
+      if(cashBankIds.has(acc.id)) map[key].cashDelta += debit - credit;
+    });
+  });
+  const labels = Object.keys(map).sort();
+  let running = 0;
+  const cash = labels.map(m=>{ running += map[m].cashDelta; return Math.round(running*100)/100; });
+  return {
+    labels,
+    income: labels.map(m=>Math.round(map[m].income*100)/100),
+    expense: labels.map(m=>Math.round(map[m].expense*100)/100),
+    cash
+  };
+}
+
+/* ============ RENDER ============ */
+function render(){
+  if(!currentUser){ renderAuthScreen(); return; }
+  const app = document.getElementById('app');
+  if(!state){ app.innerHTML = '<div class="loading-screen"><div class="spinner-big"></div><div>Loading your ledger…</div></div>'; return; }
+  const gt = grandTotal();
+
+  // The masthead total is context-aware: viewing one account's ledger shows
+  // that account's own total, not the combined total of every account.
+  let mastheadLabel = 'Grand Total Balance';
+  let mastheadValue = gt;
+  let showBreakdown = false;
+  if(view.mode === 'account'){
+    const activeAcc = state.accounts.find(a=>a.id===view.accountId);
+    if(activeAcc){
+      mastheadLabel = 'Total Balance';
+      mastheadValue = computeAccount(activeAcc).totalBalance;
+    }
+  } else if(view.mode === 'master'){
+    showBreakdown = state.accounts.length > 0;
+  }
+
+  const booksBalanced = computeBalanceSheet().balanced;
+  const initials = (currentUser.email||'?').charAt(0).toUpperCase();
+
+  let html = `<div class="app-shell">`;
+
+  html += `<div class="sidebar-backdrop" id="sidebarBackdrop"></div>`;
+
+  // Sidebar (contains the same nav tabs as before — just positioned as a vertical sidebar)
+  html += `
+  <aside class="sidebar" id="appSidebar">
+    <div class="sidebar-brand">
+      <span class="brand-mark">📘</span>
+      <div>
+        <div class="brand-name">${escapeHtml(state.companyName)}</div>
+        <div class="brand-sub">Ledger</div>
+      </div>
+    </div>
+    <div class="tabs">`;
+  html += `<div class="tab ${view.mode==='dashboard'?'active':''}" data-tab="dashboard">📊 Dashboard</div>`;
+  html += `<div class="tab master-tab ${view.mode==='master'?'active':''}" data-tab="master">📒 All Accounts</div>`;
+  html += `<div class="tab ${view.mode==='journal'?'active':''}" data-tab="journal">🧾 Journal Voucher</div>`;
+  html += `<div class="tab ${view.mode==='trial'?'active':''}" data-tab="trial">⚖️ Trial Balance</div>`;
+  html += `<div class="tab ${view.mode==='pnl'?'active':''}" data-tab="pnl">📈 Profit &amp; Loss</div>`;
+  html += `<div class="tab ${view.mode==='bsheet'?'active':''}" data-tab="bsheet">🏛️ Balance Sheet</div>`;
+  state.accounts.forEach(acc=>{
+    html += `<div class="tab ${view.mode==='account' && view.accountId===acc.id ? 'active':''}" data-tab="${acc.id}">${escapeHtml(acc.name)}</div>`;
+  });
+  if(view.mode==='search'){
+    html += `<div class="tab active" data-tab="search">🔍 Search Results</div>`;
+  }
+  html += `
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn small theme-toggle-btn" id="themeToggle">${getTheme()==='dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}</button>
+    </div>
+  </aside>`;
+
+  html += `<div class="shell-main">`;
+
+  // Topbar — company name / date / currency (masthead) + notifications + profile + logout
+  html += `
+  <header class="topbar masthead">
+    <button class="sidebar-toggle-mobile" id="btnSidebarToggle" title="Menu">☰</button>
+    <div class="masthead-left">
+      <input class="biz-name-input" id="companyNameInput" value="${escapeHtml(state.companyName)}" placeholder="Company Name">
+      <div class="ledger-subtitle"><span class="app-tagline">Multi-account cash ledger — </span><input type="date" class="ledger-date-input" id="ledgerDateInput" value="${state.ledgerDate}">
+        <span class="currency-select">&nbsp;·&nbsp;<select class="ledger-date-input" id="currencySelect" style="border:1px dashed transparent;">
+          ${['$','Rs','₨','₹','€','£','﷼','د.إ'].map(c=>`<option value="${c}" ${state.currency===c?'selected':''}>${c}</option>`).join('')}
+        </select></span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="grand-total-field masthead-right">
+        <label>${mastheadLabel}</label>
+        <div class="value ${mastheadValue<0?'neg':''}">${fmt(mastheadValue)}</div>
+        ${showBreakdown ? `<div class="gt-breakdown">
+          ${state.accounts.map(a=>{
+            const bal = computeAccount(a).totalBalance;
+            return `<div class="gt-row"><span>${escapeHtml(a.name)}</span><span>${fmt(bal)}</span></div>`;
+          }).join('')}
+        </div>` : ''}
+      </div>
+      <button class="icon-circle-btn" id="btnNotifications" title="${booksBalanced ? 'Books are balanced' : 'Books are out of balance — see Balance Sheet'}">🔔${booksBalanced ? '' : '<span class="notif-dot"></span>'}</button>
+      <div class="profile-chip" title="${escapeHtml(currentUser.email||'')}">${initials}</div>
+      <button class="btn small" id="btnLogout" title="${escapeHtml(currentUser.email||'')}">🚪 Log Out</button>
+    </div>
+  </header>`;
+
+  html += `<main class="content-area">`;
+
+  // Toolbar
+  html += `
+  <div class="toolbar">
+    <button class="btn primary" id="btnNewAccount">＋ New Account</button>
+    <button class="btn" id="btnExportPDF">📄 Export PDF</button>
+    <button class="btn" id="btnExportJPEG">🖼 Export Image</button>
+    <button class="btn" id="btnPrint">Print</button>
+    <button class="btn" id="btnExportCSV">⬇ CSV</button>
+    <button class="btn" id="btnBackup">💾 Backup</button>
+    <button class="btn" id="btnRestore">📂 Restore</button>
+    <input type="file" id="restoreFile" accept="application/json" style="display:none;">
+    <div class="spacer"></div>
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" placeholder="${view.mode==='master' ? 'Search accounts…' : (view.mode==='search' ? 'Search everything…' : 'Search description / date…')}" value="${escapeHtml(view.search)}">
+    </div>
+    <button class="btn" id="btnGlobalSearch">🔍 Search</button>
+  </div>`;
+
+  // Panel
+  if(view.mode === 'search'){
+    html += renderSearchPanel(view.search);
+  } else if(view.mode === 'dashboard'){
+    html += renderDashboardPanel();
+  } else if(view.mode === 'journal'){
+    html += renderJournalPanel();
+  } else if(view.mode === 'master'){
+    html += renderMasterPanel();
+  } else if(view.mode === 'trial'){
+    html += renderTrialBalancePanel();
+  } else if(view.mode === 'pnl'){
+    html += renderPnLPanel();
+  } else if(view.mode === 'bsheet'){
+    html += renderBalanceSheetPanel();
+  } else {
+    const acc = state.accounts.find(a=>a.id===view.accountId);
+    if(acc) html += renderAccountPanel(acc);
+    else { view.mode='master'; html += renderMasterPanel(); }
+  }
+
+  html += `</main></div></div>`; // .content-area, .shell-main, .app-shell
+
+  app.innerHTML = html;
+  attachEvents();
+  if(view.mode==='dashboard') renderDashboardCharts();
+}
+
+/* ============ TABLE HELPERS: client-side sort + pagination (additive, doesn't touch any calculations) ============ */
+function sortByKey(rows, sortState, getters){
+  if(!sortState || !sortState.key || !getters[sortState.key]) return rows;
+  const get = getters[sortState.key];
+  return rows.slice().sort((a,b)=>{
+    const va = get(a), vb = get(b);
+    if(typeof va === 'number' && typeof vb === 'number') return (va-vb) * sortState.dir;
+    return String(va).localeCompare(String(vb)) * sortState.dir;
+  });
+}
+function paginateRows(rows, page, pageSize){
+  if(pageSize==='all' || !pageSize) return { pageRows: rows, totalPages: 1, page: 1 };
+  const totalPages = Math.max(1, Math.ceil(rows.length/pageSize));
+  const p = Math.min(Math.max(1, page||1), totalPages);
+  const start = (p-1)*pageSize;
+  return { pageRows: rows.slice(start, start+pageSize), totalPages, page: p };
+}
+function sortArrow(sortState, key){
+  if(!sortState || sortState.key!==key) return '';
+  return `<span class="sort-arrow">${sortState.dir===1?'▲':'▼'}</span>`;
+}
+function tableToolbarHtml(prefix, pageSize){
+  return `<div class="table-toolbar">Rows per page:
+    <select data-pgsize="${prefix}">
+      ${[10,25,50].map(n=>`<option value="${n}" ${pageSize===n?'selected':''}>${n}</option>`).join('')}
+      <option value="all" ${pageSize==='all'?'selected':''}>All</option>
+    </select>
+  </div>`;
+}
+function paginationHtml(prefix, page, totalPages){
+  if(totalPages<=1) return '';
+  return `<div class="pagination">
+    <button class="btn small" data-pgaction="${prefix}:prev" ${page<=1?'disabled':''}>‹ Prev</button>
+    <span class="pg-info">Page ${page} of ${totalPages}</span>
+    <button class="btn small" data-pgaction="${prefix}:next" ${page>=totalPages?'disabled':''}>Next ›</button>
+  </div>`;
+}
+
+function renderMasterPanel(){
+  const q = view.search.trim().toLowerCase();
+  let list = state.accounts
+    .map(acc=>({acc, totals: computeAccount(acc)}))
+    .filter(x=> !q || x.acc.name.toLowerCase().includes(q));
+
+  const gt = list.reduce((s,x)=>s+x.totals.totalBalance,0); // total always reflects the full filtered set, not just the current page
+
+  list = sortByKey(list, view.masterSort, {
+    name: x=>x.acc.name.toLowerCase(),
+    type: x=>goldenRule(x.acc.type).label,
+    balance: x=>x.totals.totalBalance
+  });
+  const pageSize = view.masterPageSize || 10;
+  const { pageRows, totalPages, page } = paginateRows(list, view.masterPage, pageSize);
+  const startIdx = pageSize==='all' ? 0 : (page-1)*pageSize;
+
+  let rows = '';
+  if(list.length===0){
+    rows = `<tr><td colspan="5"><div class="empty-msg">${state.accounts.length===0 ? 'No accounts yet. Click “＋ New Account” to create your first ledger.' : 'No accounts match your search.'}</div></td></tr>`;
+  } else {
+    pageRows.forEach((x,i)=>{
+      const t = goldenRule(x.acc.type);
+      rows += `
+      <tr class="acct-row" data-open="${x.acc.id}">
+        <td data-label="Sr#">${startIdx+i+1}</td>
+        <td data-label="Name">${escapeHtml(x.acc.name)}</td>
+        <td data-label="Type"><span class="type-pill" title="${escapeHtml(t.rule)}">${t.label}</span></td>
+        <td data-label="Total Balance" class="num balance-cell">${fmt(x.totals.totalBalance)}</td>
+        <td data-label="" class="actions">
+          <div class="row-actions">
+            <button class="icon-btn" data-rename="${x.acc.id}" title="Edit account">✎</button>
+            <button class="icon-btn del" data-delacct="${x.acc.id}" title="Delete account">🗑</button>
+          </div>
+        </td>
+      </tr>`;
+    });
+  }
+
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Master Sheet</div>
+    </div>
+    ${list.length>0 ? tableToolbarHtml('master', pageSize) : ''}
+    <div class="table-wrap">
+    <table id="masterTable">
+      <colgroup>
+        <col style="width:8%"><col style="width:30%"><col style="width:17%"><col style="width:23%"><col style="width:22%" class="col-actions">
+      </colgroup>
+      <thead><tr><th>Sr#</th><th class="sortable" data-sortkey="master:name">Names${sortArrow(view.masterSort,'name')}</th><th class="sortable" data-sortkey="master:type">Type${sortArrow(view.masterSort,'type')}</th><th class="num sortable" data-sortkey="master:balance">Total Balance${sortArrow(view.masterSort,'balance')}</th><th class="actions"></th></tr></thead>
+      <tbody>${rows}</tbody>
+      ${list.length>0 ? `<tfoot><tr><td></td><td style="font-weight:700;">Total</td><td></td><td class="num" style="font-weight:700;">${fmt(gt)}</td><td class="actions"></td></tr></tfoot>` : ''}
+    </table>
+    </div>
+    ${paginationHtml('master', page, totalPages)}
+  </div>`;
+}
+
+function renderAccountPanel(acc){
+  const calc = computeAccount(acc);
+  const q = view.search.trim().toLowerCase();
+
+  let filteredRows = calc.rows.filter(r=>{
+    if(!q) return true;
+    const hay = (r.description+' '+r.date).toLowerCase();
+    return hay.includes(q);
+  });
+
+  // Pagination only — never re-sorted, since Balance is a running total tied to entry order.
+  const pageSize = view.acctPageSize || 25;
+  const { pageRows, totalPages, page } = paginateRows(filteredRows, view.acctPage, pageSize);
+
+  let rows = '';
+  pageRows.forEach((r)=>{
+    const isOpening = r.srNo===1;
+    rows += `
+    <tr class="${isOpening?'opening':''}">
+      <td data-label="Sr#">${r.srNo}</td>
+      <td data-label="Date">${fmtDate(r.date)}</td>
+      <td data-label="Description">${escapeHtml(r.description)}${r.voucherNo?` <span class="type-pill" style="font-size:10px;">${escapeHtml(r.voucherNo)}</span>`:''}</td>
+      <td data-label="Debit" class="num debit-cell">${r.debit? fmt(r.debit):''}</td>
+      <td data-label="Credit" class="num credit-cell">${r.credit? fmt(r.credit):''}</td>
+      <td data-label="Balance" class="num balance-cell">${fmt(r.balance)}</td>
+      <td data-label="" class="actions">
+        <div class="row-actions">
+          ${r.voucherNo ? '' : `<button class="icon-btn" data-editentry="${acc.id}:${r.id}" title="Edit">✎</button>`}
+          ${isOpening || r.voucherNo ? '' : `<button class="icon-btn del" data-delentry="${acc.id}:${r.id}" title="Delete">🗑</button>`}
+        </div>
+      </td>
+    </tr>`;
+  });
+  if(!rows){
+    rows = `<tr><td colspan="7"><div class="empty-msg">No entries match.</div></td></tr>`;
+  }
+
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">${escapeHtml(acc.name)} <span class="acc-type-badge">${goldenRule(acc.type).label}</span></div>
+      <button class="btn small" data-addentry="${acc.id}" title="For adjustments only — use Journal Voucher for real transactions so both sides stay balanced">＋ Quick Entry</button>
+      <div class="print-date-tag">As of: ${fmtDate(state.ledgerDate)}</div>
+    </div>
+    <div class="rule-banner"><span>📏</span><div><b>${goldenRule(acc.type).rule}</b><div class="rule-hint" style="margin-top:2px;">${goldenRule(acc.type).hint}</div></div></div>
+    <div class="totals-row">
+      <div class="total-chip debit"><div class="lbl">Total Debit</div><div class="val">${fmt(calc.totalDebit)}</div></div>
+      <div class="total-chip credit"><div class="lbl">Total Credit</div><div class="val">${fmt(calc.totalCredit)}</div></div>
+      <div class="total-chip balance"><div class="lbl">Total Balance</div><div class="val">${fmt(calc.totalBalance)}</div></div>
+    </div>
+    ${filteredRows.length>0 ? tableToolbarHtml('acct', pageSize) : ''}
+    <div class="table-wrap">
+    <table>
+      <colgroup>
+        <col style="width:6%"><col style="width:11%"><col style="width:27%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:17%" class="col-actions">
+      </colgroup>
+      <thead><tr><th>Sr#</th><th>Date</th><th>Description</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th><th class="actions"></th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="3" style="font-weight:700;">Totals</td><td class="num" style="font-weight:700;">${fmt(calc.totalDebit)}</td><td class="num" style="font-weight:700;">${fmt(calc.totalCredit)}</td><td class="num" style="font-weight:700;">${fmt(calc.totalBalance)}</td><td class="actions"></td></tr></tfoot>
+    </table>
+    </div>
+    ${paginationHtml('acct', page, totalPages)}
+  </div>`;
+}
+
+function renderSearchPanel(query){
+  const q = (query||'').trim().toLowerCase();
+  const matches = [];
+  state.accounts.forEach(acc=>{
+    const calc = computeAccount(acc);
+    const accNameMatches = acc.name.toLowerCase().includes(q);
+    calc.rows.forEach(r=>{
+      const hay = (acc.name+' '+r.description+' '+ (r.date||'')).toLowerCase();
+      if(!q || accNameMatches || hay.includes(q)){
+        matches.push({ accountId: acc.id, accountName: acc.name, ...r });
+      }
+    });
+  });
+
+  let rows = '';
+  if(!q){
+    rows = `<tr><td colspan="7"><div class="empty-msg">Type something above and press “🔍 Search” to look across every account, date and description.</div></td></tr>`;
+  } else if(matches.length===0){
+    rows = `<tr><td colspan="7"><div class="empty-msg">No matches found anywhere for “${escapeHtml(query)}”.</div></td></tr>`;
+  } else {
+    matches.forEach(r=>{
+      const isOpening = r.srNo===1;
+      rows += `
+      <tr class="${isOpening?'opening':''} acct-row" data-open="${r.accountId}">
+        <td data-label="Account">${escapeHtml(r.accountName)}</td>
+        <td data-label="Sr#">${r.srNo}</td>
+        <td data-label="Date">${fmtDate(r.date)}</td>
+        <td data-label="Description">${escapeHtml(r.description)}</td>
+        <td data-label="Debit" class="num debit-cell">${r.debit? fmt(r.debit):''}</td>
+        <td data-label="Credit" class="num credit-cell">${r.credit? fmt(r.credit):''}</td>
+        <td data-label="Balance" class="num balance-cell">${fmt(r.balance)}</td>
+      </tr>`;
+    });
+  }
+
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Search Results ${q ? `for “${escapeHtml(query)}”` : ''}</div>
+    </div>
+    <div class="table-wrap">
+    <table>
+      <colgroup>
+        <col style="width:16%"><col style="width:6%"><col style="width:12%"><col style="width:28%"><col style="width:12%"><col style="width:12%"><col style="width:14%">
+      </colgroup>
+      <thead><tr><th>Account</th><th>Sr#</th><th>Date</th><th>Description</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </div>
+  </div>`;
+}
+
+function renderDashboardPanel(){
+  const d = computeDashboard();
+  const maxVal = Math.max(1, ...d.groupTotals.map(g=>Math.abs(g.value)));
+  const bars = d.groupTotals.map(g=>{
+    const pct = Math.min(100, Math.abs(g.value)/maxVal*100);
+    return `
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+        <span style="font-weight:600;">${g.label}</span><span style="font-variant-numeric:tabular-nums;color:var(--ink-soft);">${fmt(g.value)}</span>
+      </div>
+      <div style="background:var(--paper-alt);border-radius:20px;height:10px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${g.color};border-radius:20px;"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const checkClass = d.balanced ? 'ok' : 'bad';
+  const checkText = d.balanced
+    ? '✓ Books are balanced — Assets = Liabilities + Equity.'
+    : '⚠ Books are currently out of balance — check the Balance Sheet tab for details.';
+
+  function kpi(label, value, colorClass, icon, delay){
+    const negClass = value<0 ? ' style="color:var(--debit);"' : '';
+    return `<div class="kpi-card ${colorClass}" style="animation-delay:${delay}ms;">
+      <div class="kpi-top"><div class="kpi-icon">${icon}</div></div>
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-value"${negClass}>${fmt(value)}</div>
+    </div>`;
+  }
+  const kpis = [
+    kpi('Revenue', d.totalIncome, 'c-blue', '💰', 0),
+    kpi('Expenses', d.totalExpenses, 'c-orange', '💸', 30),
+    kpi(d.netProfit>=0?'Net Profit':'Net Loss', Math.abs(d.netProfit), d.netProfit>=0?'c-green':'c-red', '📈', 60),
+    kpi('Cash + Bank', d.cashBank, 'c-teal', '🏦', 90),
+    kpi('Receivables', d.receivables, 'c-lightblue', '📥', 120),
+    kpi('Payables', d.payables, 'c-red', '📤', 150),
+    kpi('Total Assets', d.totalAssets, 'c-green', '🏛️', 180),
+    kpi('Total Liabilities', d.totalLiabilities, 'c-red', '📉', 210),
+    kpi('Total Equity', d.totalEquity, 'c-purple', '🟣', 240)
+  ].join('');
+
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Dashboard</div>
+        <div class="report-meta">${escapeHtml(state.companyName)} — as of ${fmtDate(state.ledgerDate)}</div>
+      </div>
+    </div>
+    <div class="balance-check ${checkClass}">${checkText}</div>
+    <div class="kpi-grid">${kpis}</div>
+
+    <div class="chart-grid">
+      <div class="chart-card"><h4>Income vs Expenses (by month)</h4><canvas id="chartIncomeExpense"></canvas></div>
+      <div class="chart-card"><h4>Cash Flow (cumulative)</h4><canvas id="chartCashFlow"></canvas></div>
+    </div>
+
+    <div class="report-section-title">Balances by Category</div>
+    <div style="max-width:520px;">${bars}</div>
+    <div class="report-section-title">At a Glance</div>
+    <div style="font-size:13px;color:var(--ink-soft);">
+      <div>Accounts on the books: <b style="color:var(--ink);">${d.accountCount}</b></div>
+      <div style="margin-top:4px;">Journal vouchers posted: <b style="color:var(--ink);">${d.voucherCount}</b></div>
+    </div>
+  </div>`;
+}
+
+/* Renders/updates the two dashboard charts. Guarded so a missing Chart.js
+   (e.g. offline, or blocked script) degrades gracefully instead of breaking the page. */
+let __dashboardCharts = {};
+function renderDashboardCharts(){
+  if(typeof Chart === 'undefined') return;
+  const series = computeMonthlySeries();
+  const labels = series.labels.length ? series.labels : [fmtDate(todayISO())];
+  const income = series.income.length ? series.income : [0];
+  const expense = series.expense.length ? series.expense : [0];
+  const cash = series.cash.length ? series.cash : [0];
+
+  Object.values(__dashboardCharts).forEach(c=>{ try{ c.destroy(); }catch(e){} });
+  __dashboardCharts = {};
+
+  const ieCanvas = document.getElementById('chartIncomeExpense');
+  const cfCanvas = document.getElementById('chartCashFlow');
+  if(!ieCanvas || !cfCanvas) return;
+
+  const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--line').trim() || '#dde5f3';
+  const inkColor = getComputedStyle(document.documentElement).getPropertyValue('--ink-soft').trim() || '#5a6685';
+  const incomeColor = getComputedStyle(document.documentElement).getPropertyValue('--income-blue').trim() || '#2f6fb3';
+  const expenseColor = getComputedStyle(document.documentElement).getPropertyValue('--orange').trim() || '#c1652f';
+  const tealColor = getComputedStyle(document.documentElement).getPropertyValue('--teal').trim() || '#158080';
+
+  try{
+    __dashboardCharts.ie = new Chart(ieCanvas, {
+      type:'bar',
+      data:{ labels, datasets:[
+        { label:'Income', data:income, backgroundColor:incomeColor },
+        { label:'Expenses', data:expense, backgroundColor:expenseColor }
+      ]},
+      options:{ responsive:true, maintainAspectRatio:true,
+        plugins:{ legend:{ labels:{ color:inkColor } } },
+        scales:{ x:{ ticks:{color:inkColor}, grid:{color:gridColor} }, y:{ ticks:{color:inkColor}, grid:{color:gridColor} } } }
+    });
+    __dashboardCharts.cf = new Chart(cfCanvas, {
+      type:'line',
+      data:{ labels, datasets:[
+        { label:'Cash + Bank Balance', data:cash, borderColor:tealColor, backgroundColor:tealColor+'22', fill:true, tension:.3 }
+      ]},
+      options:{ responsive:true, maintainAspectRatio:true,
+        plugins:{ legend:{ labels:{ color:inkColor } } },
+        scales:{ x:{ ticks:{color:inkColor}, grid:{color:gridColor} }, y:{ ticks:{color:inkColor}, grid:{color:gridColor} } } }
+    });
+  }catch(e){ console.error('Chart render failed', e); }
+}
+
+function renderJournalPanel(){
+  const q = view.search.trim().toLowerCase();
+  const list = state.journal
+    .filter(j=> !q || j.narration.toLowerCase().includes(q) || j.voucherNo.toLowerCase().includes(q))
+    .slice().reverse();
+
+  let rows = '';
+  if(state.accounts.length < 2){
+    rows = `<tr><td colspan="4"><div class="empty-msg">Create at least two accounts first — a journal voucher always debits one account and credits another.</div></td></tr>`;
+  } else if(list.length===0){
+    rows = `<tr><td colspan="4"><div class="empty-msg">${state.journal.length===0 ? 'No vouchers posted yet. Click “＋ New Voucher” to record a proper double-entry transaction.' : 'No vouchers match your search.'}</div></td></tr>`;
+  } else {
+    list.forEach(j=>{
+      const dr = journalLineSum(j.lines,'debit');
+      const lineNames = j.lines.map(l=>{
+        const acc = state.accounts.find(a=>a.id===l.accountId);
+        const name = acc ? acc.name : '(deleted account)';
+        return l.debit ? `Dr ${escapeHtml(name)}` : `Cr ${escapeHtml(name)}`;
+      }).join(', ');
+      rows += `
+      <tr>
+        <td data-label="Voucher #"><b>${escapeHtml(j.voucherNo)}</b></td>
+        <td data-label="Date">${fmtDate(j.date)}</td>
+        <td data-label="Details">${escapeHtml(j.narration)}<div class="rule-hint" style="margin-top:2px;">${lineNames}</div></td>
+        <td data-label="Amount" class="num balance-cell">${fmt(dr)}</td>
+        <td data-label="" class="actions"><div class="row-actions"><button class="icon-btn del" data-deljournal="${j.id}" title="Delete voucher">🗑</button></div></td>
+      </tr>`;
+    });
+  }
+
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Journal Voucher</div>
+        <div class="report-meta">Proper double entry — every voucher debits and credits equal amounts across two or more accounts.</div>
+      </div>
+      <button class="btn primary small" id="btnNewJournal" ${state.accounts.length<2?'disabled':''}>＋ New Voucher</button>
+    </div>
+    <div class="table-wrap">
+    <table>
+      <colgroup><col style="width:14%"><col style="width:12%"><col style="width:48%"><col style="width:16%"><col style="width:10%" class="col-actions"></colgroup>
+      <thead><tr><th>Voucher #</th><th>Date</th><th>Details</th><th class="num">Amount</th><th class="actions"></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </div>
+  </div>`;
+}
+
+function renderTrialBalancePanel(){
+  const tb = computeTrialBalance();
+  let rows = '';
+  if(tb.rows.length===0){
+    rows = `<tr><td colspan="4"><div class="empty-msg">No accounts with a balance yet.</div></td></tr>`;
+  } else {
+    tb.rows.forEach((r,i)=>{
+      rows += `
+      <tr>
+        <td data-label="Sr#">${i+1}</td>
+        <td data-label="Account Name">${escapeHtml(r.name)}</td>
+        <td data-label="Debit Balance" class="num debit-cell">${r.debit? fmt(r.debit):''}</td>
+        <td data-label="Credit Balance" class="num credit-cell">${r.credit? fmt(r.credit):''}</td>
+      </tr>`;
+    });
+  }
+
+  const checkClass = tb.balanced ? 'ok' : 'bad';
+  const checkText = tb.balanced
+    ? '✓ Trial Balance is in balance — Total Debit = Total Credit.'
+    : `⚠ Out of balance by ${fmt(Math.abs(tb.totalDebit-tb.totalCredit))} — review recent entries for a missing debit or credit.`;
+
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Trial Balance</div>
+        <div class="report-meta">As of ${fmtDate(state.ledgerDate)}</div>
+      </div>
+    </div>
+    <div class="balance-check ${checkClass}">${checkText}</div>
+    <div class="table-wrap">
+    <table>
+      <colgroup><col style="width:8%"><col style="width:46%"><col style="width:23%"><col style="width:23%"></colgroup>
+      <thead><tr><th>Sr No.</th><th>Account Name</th><th class="num">Debit Balance</th><th class="num">Credit Balance</th></tr></thead>
+      <tbody>${rows}</tbody>
+      ${tb.rows.length>0 ? `<tfoot><tr class="grand-row"><td colspan="2">Total</td><td class="num">${fmt(tb.totalDebit)}</td><td class="num">${fmt(tb.totalCredit)}</td></tr></tfoot>` : ''}
+    </table>
+    </div>
+  </div>`;
+}
+
+function renderPnLPanel(){
+  const p = computePnL();
+
+  function sectionRows(list, cls){
+    if(list.length===0) return `<tr><td class="indent-cell" colspan="1">—</td><td class="num">0.00</td></tr>`;
+    return list.map(a=>`<tr><td class="indent-cell">${escapeHtml(a.name)}</td><td class="num ${cls}">${fmt(a.amount)}</td></tr>`).join('');
+  }
+
+  const netClass = p.netProfit >= 0 ? 'pos' : 'neg';
+  const netLabel = p.netProfit >= 0 ? 'Net Profit' : 'Net Loss';
+  const grossClass = p.grossProfit >= 0 ? 'pos' : 'neg';
+  const grossLabel = p.grossProfit >= 0 ? 'Gross Profit' : 'Gross Loss';
+
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Profit &amp; Loss Statement</div>
+        <div class="report-meta">${escapeHtml(state.companyName)} — for the period ending ${fmtDate(state.ledgerDate)}</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+    <table>
+      <colgroup><col style="width:70%"><col style="width:30%"></colgroup>
+      <thead><tr><th style="text-align:left;">Particulars</th><th class="num">Amount</th></tr></thead>
+      <tbody>
+        <tr class="group-row"><td colspan="2">Income</td></tr>
+        ${sectionRows(p.incomeAccounts,'credit-cell')}
+        <tr class="subtotal-row"><td>Total Income</td><td class="num">${fmt(p.totalIncome)}</td></tr>
+
+        <tr class="group-row"><td colspan="2">Less: Cost of Goods Sold</td></tr>
+        ${sectionRows(p.cogsAccounts,'debit-cell')}
+        <tr class="subtotal-row"><td>Total Cost of Goods Sold</td><td class="num">${fmt(p.totalCogs)}</td></tr>
+
+        <tr class="profit-row ${grossClass}"><td>${grossLabel}</td><td class="num">${fmt(Math.abs(p.grossProfit))}</td></tr>
+
+        <tr class="group-row"><td colspan="2">Less: Operating Expenses</td></tr>
+        ${sectionRows(p.opexAccounts,'debit-cell')}
+        <tr class="subtotal-row"><td>Total Operating Expenses</td><td class="num">${fmt(p.totalOpex)}</td></tr>
+      </tbody>
+      <tfoot>
+        <tr class="grand-row profit-row ${netClass}"><td>${netLabel}</td><td class="num">${fmt(Math.abs(p.netProfit))}</td></tr>
+      </tfoot>
+    </table>
+    </div>
+  </div>`;
+}
+
+function renderBalanceSheetPanel(){
+  const b = computeBalanceSheet();
+
+  function group(label, g){
+    if(g.rows.length===0) return '';
+    const rowsHtml = g.rows.map(r=>`<tr><td class="indent-cell">${escapeHtml(r.name)}</td><td class="num">${fmt(r.amount)}</td></tr>`).join('');
+    return `<tr class="group-row"><td colspan="2">${label}</td></tr>${rowsHtml}<tr class="subtotal-row"><td>Total ${label}</td><td class="num">${fmt(g.subtotal)}</td></tr>`;
+  }
+
+  const assetGroupsHtml =
+    group('Cash', b.assets.cash) +
+    group('Bank', b.assets.bank) +
+    group('Accounts Receivable', b.assets.receivable) +
+    group('Other Current Assets', b.assets.otherCurrent) +
+    group('Fixed Assets', b.assets.fixed) +
+    group('Other Assets', b.assets.other);
+
+  const liabGroupsHtml =
+    group('Accounts Payable', b.liabilities.payable) +
+    group('Loans / Borrowings', b.liabilities.loan) +
+    group('Other Liabilities', b.liabilities.other);
+
+  const capitalRows = b.capitalGroup.rows.length
+    ? b.capitalGroup.rows.map(r=>`<tr><td class="indent-cell">${escapeHtml(r.name)}</td><td class="num">${fmt(r.amount)}</td></tr>`).join('')
+    : `<tr><td class="indent-cell">—</td><td class="num">0.00</td></tr>`;
+
+  const equityHtml = `
+    <tr class="group-row"><td colspan="2">Capital</td></tr>
+    ${capitalRows}
+    <tr class="subtotal-row"><td>Total Capital</td><td class="num">${fmt(b.capitalGroup.subtotal)}</td></tr>
+    <tr class="group-row"><td colspan="2">Retained Earnings</td></tr>
+    ${b.retainedManual.rows.map(r=>`<tr><td class="indent-cell">${escapeHtml(r.name)}</td><td class="num">${fmt(r.amount)}</td></tr>`).join('')}
+    <tr><td class="indent-cell">Current Period Net Profit / (Loss)</td><td class="num">${fmt(b.netProfit)}</td></tr>
+    <tr class="subtotal-row"><td>Total Retained Earnings</td><td class="num">${fmt(b.retainedTotal)}</td></tr>
+  `;
+
+  const checkClass = b.balanced ? 'ok' : 'bad';
+  const checkText = b.balanced
+    ? '✓ Balance Sheet is in balance — Assets = Liabilities + Equity.'
+    : `⚠ Out of balance by ${fmt(Math.abs(b.totalAssets-b.totalLiabPlusEquity))} — review account categories and recent entries.`;
+
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Balance Sheet</div>
+        <div class="report-meta">${escapeHtml(state.companyName)} — as of ${fmtDate(state.ledgerDate)}</div>
+      </div>
+    </div>
+    <div class="balance-check ${checkClass}">${checkText}</div>
+
+    <div class="report-section-title">Assets</div>
+    <div class="table-wrap">
+    <table>
+      <colgroup><col style="width:70%"><col style="width:30%"></colgroup>
+      <thead><tr><th style="text-align:left;">Account</th><th class="num">Amount</th></tr></thead>
+      <tbody>${assetGroupsHtml || `<tr><td colspan="2"><div class="empty-msg">No asset accounts yet.</div></td></tr>`}</tbody>
+      <tfoot><tr class="grand-row"><td>Total Assets</td><td class="num">${fmt(b.totalAssets)}</td></tr></tfoot>
+    </table>
+    </div>
+
+    <div class="report-section-title">Liabilities</div>
+    <div class="table-wrap">
+    <table>
+      <colgroup><col style="width:70%"><col style="width:30%"></colgroup>
+      <thead><tr><th style="text-align:left;">Account</th><th class="num">Amount</th></tr></thead>
+      <tbody>${liabGroupsHtml || `<tr><td colspan="2"><div class="empty-msg">No liability accounts yet.</div></td></tr>`}</tbody>
+      <tfoot><tr class="grand-row"><td>Total Liabilities</td><td class="num">${fmt(b.totalLiabilities)}</td></tr></tfoot>
+    </table>
+    </div>
+
+    <div class="report-section-title">Equity</div>
+    <div class="table-wrap">
+    <table>
+      <colgroup><col style="width:70%"><col style="width:30%"></colgroup>
+      <thead><tr><th style="text-align:left;">Account</th><th class="num">Amount</th></tr></thead>
+      <tbody>${equityHtml}</tbody>
+      <tfoot><tr class="grand-row"><td>Total Equity</td><td class="num">${fmt(b.totalEquity)}</td></tr></tfoot>
+    </table>
+    </div>
+
+    <div class="report-section-title">Total Liabilities + Equity</div>
+    <div class="table-wrap">
+    <table>
+      <colgroup><col style="width:70%"><col style="width:30%"></colgroup>
+      <tbody><tr class="grand-row"><td>Total Liabilities + Equity</td><td class="num">${fmt(b.totalLiabPlusEquity)}</td></tr></tbody>
+    </table>
+    </div>
+  </div>`;
+}
+
+/* ============ MODALS ============ */
+function openModal(html){
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.id='modalOverlay';
+  overlay.innerHTML = `<div class="modal">${html}</div>`;
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeModal(); });
+  document.body.appendChild(overlay);
+}
+function closeModal(){
+  const ov = document.getElementById('modalOverlay');
+  if(ov) ov.remove();
+}
+
+function modalNewAccount(){
+  openModal(`
+    <h3>New Account</h3>
+    <div class="field"><label>Account Name</label><input id="m_name" placeholder="e.g. Cash Account, Petty Cash…"></div>
+    <div class="field">
+      <label>Account Type (3 Golden Rules of Accounting)</label>
+      <select id="m_type">
+        <option value="personal">Personal Account</option>
+        <option value="real">Real Account</option>
+        <option value="nominal">Nominal Account</option>
+      </select>
+      <div class="rule-hint" id="m_typeHint"></div>
+    </div>
+    <div class="field">
+      <label>Report Category (for Trial Balance, P&amp;L, Balance Sheet)</label>
+      ${categorySelectHtml('m_category','asset-cash')}
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Opening Date</label><input id="m_date" type="date" value="${todayISO()}"></div>
+      <div class="field"><label>Opening Balance</label><input id="m_amount" type="number" step="0.01" value="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="m_cancel">Cancel</button>
+      <button class="btn primary" id="m_save">Create Account</button>
+    </div>
+  `);
+  const typeSelect = document.getElementById('m_type');
+  const typeHint = document.getElementById('m_typeHint');
+  const updateHint = ()=>{
+    const r = goldenRule(typeSelect.value);
+    typeHint.innerHTML = `<b>${r.rule}</b><br>${r.hint}`;
+  };
+  typeSelect.addEventListener('change', updateHint);
+  updateHint();
+  document.getElementById('m_cancel').onclick = closeModal;
+  document.getElementById('m_save').onclick = ()=>{
+    const name = document.getElementById('m_name').value.trim();
+    const type = typeSelect.value;
+    const category = document.getElementById('m_category').value;
+    const date = document.getElementById('m_date').value || todayISO();
+    const amount = Number(document.getElementById('m_amount').value)||0;
+    if(!name){ showToast('Please enter an account name.', 'error'); return; }
+    const acc = {
+      id: uid(),
+      name,
+      type,
+      category,
+      entries: [{ id: uid(), date, description:'OPENING BALANCE', debit: amount, credit: null }]
+    };
+    state.accounts.push(acc);
+    saveState();
+    closeModal();
+    view.mode='account'; view.accountId=acc.id; view.search='';
+    render();
+    showToast(`Account "${name}" created.`, 'success');
+  };
+}
+
+function modalRenameAccount(id){
+  const acc = state.accounts.find(a=>a.id===id);
+  if(!acc) return;
+  const currentType = acc.type || 'personal';
+  openModal(`
+    <h3>Edit Account</h3>
+    <div class="field"><label>Account Name</label><input id="m_name" value="${escapeHtml(acc.name)}"></div>
+    <div class="field">
+      <label>Account Type (3 Golden Rules of Accounting)</label>
+      <select id="m_type">
+        <option value="personal" ${currentType==='personal'?'selected':''}>Personal Account</option>
+        <option value="real" ${currentType==='real'?'selected':''}>Real Account</option>
+        <option value="nominal" ${currentType==='nominal'?'selected':''}>Nominal Account</option>
+      </select>
+      <div class="rule-hint" id="m_typeHint"></div>
+    </div>
+    <div class="field">
+      <label>Report Category (for Trial Balance, P&amp;L, Balance Sheet)</label>
+      ${categorySelectHtml('m_category', acc.category || inferCategory(acc))}
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="m_cancel">Cancel</button>
+      <button class="btn primary" id="m_save">Save</button>
+    </div>
+  `);
+  const typeSelect = document.getElementById('m_type');
+  const typeHint = document.getElementById('m_typeHint');
+  const updateHint = ()=>{
+    const r = goldenRule(typeSelect.value);
+    typeHint.innerHTML = `<b>${r.rule}</b><br>${r.hint}`;
+  };
+  typeSelect.addEventListener('change', updateHint);
+  updateHint();
+  document.getElementById('m_cancel').onclick = closeModal;
+  document.getElementById('m_save').onclick = ()=>{
+    const name = document.getElementById('m_name').value.trim();
+    if(!name){ showToast('Name cannot be empty.', 'error'); return; }
+    acc.name = name;
+    acc.type = typeSelect.value;
+    acc.category = document.getElementById('m_category').value;
+    saveState();
+    closeModal();
+    render();
+  };
+}
+
+function modalDeleteAccount(id){
+  const acc = state.accounts.find(a=>a.id===id);
+  if(!acc) return;
+  openModal(`
+    <h3>Delete Account</h3>
+    <div class="modal-msg">Delete “${escapeHtml(acc.name)}” and all of its ${acc.entries.length} entries? This cannot be undone.</div>
+    <div class="modal-actions">
+      <button class="btn" id="m_cancel">Cancel</button>
+      <button class="btn danger" id="m_delete">Delete</button>
+    </div>
+  `);
+  document.getElementById('m_cancel').onclick = closeModal;
+  document.getElementById('m_delete').onclick = ()=>{
+    state.accounts = state.accounts.filter(a=>a.id!==id);
+    if(view.accountId===id){ view.mode='master'; view.accountId=null; }
+    saveState();
+    closeModal();
+    render();
+    showToast(`Account "${acc.name}" deleted.`, 'info');
+  };
+}
+
+function modalEntry(accId, entryId){
+  const acc = state.accounts.find(a=>a.id===accId);
+  if(!acc) return;
+  const isNew = !entryId;
+  const entry = isNew ? {date:todayISO(), description:'', debit:'', credit:''} : acc.entries.find(e=>e.id===entryId);
+  const isOpening = !isNew && acc.entries[0].id===entryId;
+
+  openModal(`
+    <h3>${isNew ? 'Add Entry' : (isOpening? 'Edit Opening Balance' : 'Edit Entry')}</h3>
+    <div class="rule-banner"><span>📏</span><div><b>${goldenRule(acc.type).rule}</b><div class="rule-hint" style="margin-top:2px;">${goldenRule(acc.type).label} — ${acc.name}</div></div></div>
+    <div class="field"><label>Date</label><input id="m_date" type="date" value="${entry.date||todayISO()}"></div>
+    <div class="field"><label>Description</label><input id="m_desc" ${isOpening?'disabled':''} value="${escapeHtml(entry.description)}" placeholder="e.g. Office Rent, Client Payment…"></div>
+    <div class="field-row">
+      <div class="field"><label>Debit</label><input id="m_debit" type="number" step="0.01" value="${entry.debit||''}"></div>
+      <div class="field"><label>Credit</label><input id="m_credit" type="number" step="0.01" ${isOpening?'disabled':''} value="${entry.credit||''}"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="m_cancel">Cancel</button>
+      <button class="btn primary" id="m_save">${isNew?'Add':'Save'}</button>
+    </div>
+  `);
+  document.getElementById('m_cancel').onclick = closeModal;
+  document.getElementById('m_save').onclick = ()=>{
+    const date = document.getElementById('m_date').value || todayISO();
+    const description = isOpening ? 'OPENING BALANCE' : document.getElementById('m_desc').value.trim();
+    const debit = document.getElementById('m_debit').value;
+    const credit = isOpening ? null : document.getElementById('m_credit').value;
+    if(!isOpening && !description){ showToast('Please enter a description.', 'error'); return; }
+    if(isNew){
+      acc.entries.push({ id: uid(), date, description, debit: debit?Number(debit):null, credit: credit?Number(credit):null });
+    } else {
+      entry.date = date;
+      entry.description = description;
+      entry.debit = debit?Number(debit):null;
+      if(!isOpening) entry.credit = credit?Number(credit):null;
+    }
+    saveState();
+    closeModal();
+    render();
+  };
+}
+
+function modalDeleteEntry(accId, entryId){
+  openModal(`
+    <h3>Delete Entry</h3>
+    <div class="modal-msg">Delete this entry? This cannot be undone.</div>
+    <div class="modal-actions">
+      <button class="btn" id="m_cancel">Cancel</button>
+      <button class="btn danger" id="m_delete">Delete</button>
+    </div>
+  `);
+  document.getElementById('m_cancel').onclick = closeModal;
+  document.getElementById('m_delete').onclick = ()=>{
+    const acc = state.accounts.find(a=>a.id===accId);
+    if(acc) acc.entries = acc.entries.filter(e=>e.id!==entryId);
+    saveState();
+    closeModal();
+    render();
+    showToast('Entry deleted.', 'info');
+  };
+}
+
+function accountOptionsHtml(selectedId){
+  return state.accounts.map(a=>`<option value="${a.id}" ${selectedId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('');
+}
+
+function journalLineRowHtml(idx, line){
+  line = line || {accountId:'', debit:'', credit:''};
+  return `
+  <div class="field-row jv-line" data-line="${idx}" style="align-items:flex-end;">
+    <div class="field" style="flex:2;"><label>Account</label><select class="jv_acct">${accountOptionsHtml(line.accountId)}</select></div>
+    <div class="field"><label>Debit</label><input class="jv_debit" type="number" step="0.01" value="${line.debit||''}"></div>
+    <div class="field"><label>Credit</label><input class="jv_credit" type="number" step="0.01" value="${line.credit||''}"></div>
+    <button class="icon-btn del jv_remove" title="Remove line" style="margin-bottom:12px;">🗑</button>
+  </div>`;
+}
+
+function modalJournalVoucher(){
+  openModal(`
+    <h3>New Journal Voucher</h3>
+    <div class="field-row">
+      <div class="field"><label>Date</label><input id="jv_date" type="date" value="${todayISO()}"></div>
+      <div class="field" style="flex:2;"><label>Narration</label><input id="jv_narration" placeholder="What is this transaction for?"></div>
+    </div>
+    <div id="jv_lines">
+      ${journalLineRowHtml(0)}
+      ${journalLineRowHtml(1)}
+    </div>
+    <button class="btn small" id="jv_addline" type="button">＋ Add Line</button>
+    <div class="rule-banner" id="jv_balanceMsg" style="margin-top:12px;"><span>📏</span><div>Total debit must equal total credit before this voucher can be posted.</div></div>
+    <div class="modal-actions">
+      <button class="btn" id="m_cancel">Cancel</button>
+      <button class="btn primary" id="jv_save">Post Voucher</button>
+    </div>
+  `);
+
+  const linesWrap = document.getElementById('jv_lines');
+  function currentLines(){
+    return Array.from(linesWrap.querySelectorAll('.jv-line')).map(row=>({
+      accountId: row.querySelector('.jv_acct').value,
+      debit: Number(row.querySelector('.jv_debit').value)||0,
+      credit: Number(row.querySelector('.jv_credit').value)||0
+    }));
+  }
+  function refreshBalance(){
+    const lines = currentLines();
+    const dr = journalLineSum(lines,'debit'), cr = journalLineSum(lines,'credit');
+    const box = document.getElementById('jv_balanceMsg');
+    const balanced = Math.abs(dr-cr) < 0.005 && dr>0;
+    box.innerHTML = `<span>${balanced?'✓':'📏'}</span><div><b>Debit ${fmt(dr)} · Credit ${fmt(cr)}</b><div class="rule-hint" style="margin-top:2px;">${balanced ? 'Balanced — ready to post.' : 'Not balanced yet — total debit must equal total credit.'}</div></div>`;
+    box.style.borderColor = balanced ? 'var(--credit)' : 'var(--line-strong)';
+    return balanced;
+  }
+  function wireRow(row){
+    row.querySelectorAll('input, select').forEach(el=> el.addEventListener('input', refreshBalance));
+    const rm = row.querySelector('.jv_remove');
+    rm.addEventListener('click', ()=>{
+      if(linesWrap.querySelectorAll('.jv-line').length<=2) return;
+      row.remove();
+      refreshBalance();
+    });
+  }
+  linesWrap.querySelectorAll('.jv-line').forEach(wireRow);
+  document.getElementById('jv_addline').addEventListener('click', ()=>{
+    const idx = linesWrap.querySelectorAll('.jv-line').length;
+    linesWrap.insertAdjacentHTML('beforeend', journalLineRowHtml(idx));
+    wireRow(linesWrap.lastElementChild);
+    refreshBalance();
+  });
+  refreshBalance();
+
+  document.getElementById('m_cancel').onclick = closeModal;
+  document.getElementById('jv_save').onclick = ()=>{
+    const date = document.getElementById('jv_date').value || todayISO();
+    const narration = document.getElementById('jv_narration').value.trim();
+    const lines = currentLines().filter(l=> l.accountId && (l.debit>0 || l.credit>0));
+    if(!narration){ showToast('Please describe what this voucher is for.', 'error'); return; }
+    if(lines.length<2){ showToast('A voucher needs at least two lines (one debit, one credit).', 'error'); return; }
+    const dr = journalLineSum(lines,'debit'), cr = journalLineSum(lines,'credit');
+    if(Math.abs(dr-cr) > 0.005){ showToast('Total debit must equal total credit before posting.', 'error'); return; }
+    const voucherNo = postJournalVoucher({date, narration, lines});
+    closeModal();
+    render();
+    showToast(`Voucher ${voucherNo} posted.`, 'success');
+  };
+}
+
+function modalDeleteJournalVoucher(journalId){
+  const j = state.journal.find(x=>x.id===journalId);
+  if(!j) return;
+  openModal(`
+    <h3>Delete Voucher</h3>
+    <div class="modal-msg">Delete voucher “${escapeHtml(j.voucherNo)}”? This removes it from every account it was posted to. This cannot be undone.</div>
+    <div class="modal-actions">
+      <button class="btn" id="m_cancel">Cancel</button>
+      <button class="btn danger" id="m_delete">Delete</button>
+    </div>
+  `);
+  document.getElementById('m_cancel').onclick = closeModal;
+  document.getElementById('m_delete').onclick = ()=>{
+    deleteJournalVoucher(journalId);
+    closeModal();
+    render();
+    showToast('Voucher deleted.', 'info');
+  };
+}
+
+/* ============ BACKUP / RESTORE / CSV EXPORT ============ */
+function downloadTextFile(filename, mime, text){
+  const blob = new Blob([text], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = filename; link.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function backupJSON(){
+  const safeName = (state.companyName||'ledger').replace(/[^\w\- ]/g,'').trim() || 'ledger';
+  downloadTextFile(`${safeName}_backup_${todayISO()}.json`, 'application/json', JSON.stringify(state, null, 2));
+  showToast('Backup downloaded.', 'success');
+}
+function restoreJSON(file){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const incoming = JSON.parse(reader.result);
+      if(!incoming || !Array.isArray(incoming.accounts)) throw new Error('bad shape');
+      if(!confirm('Restoring will replace the shared ledger for EVERYONE currently using it with the backup file. Continue?')) return;
+      state = incoming;
+      loadStateDefaults();
+      saveState();
+      view = { mode:'dashboard', accountId:null, search:'' };
+      render();
+      showToast('Ledger restored from backup.', 'success');
+    }catch(e){
+      showToast('This file doesn\u2019t look like a valid ledger backup.', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+function loadStateDefaults(){
+  if(!state.accounts) state.accounts = [];
+  if(!state.ledgerDate) state.ledgerDate = todayISO();
+  if(!state.currency) state.currency = '$';
+  if(!state.journal) state.journal = [];
+  if(typeof state.journalSeq !== 'number') state.journalSeq = state.journal.length;
+  state.accounts.forEach(a=>{ if(!a.type) a.type='real'; if(!a.category) a.category=inferCategory(a); });
+}
+function csvEscape(v){
+  const s = String(v==null?'':v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function exportCSV(){
+  let rows = [];
+  if(view.mode==='account'){
+    const acc = state.accounts.find(a=>a.id===view.accountId);
+    if(!acc) return;
+    rows.push(['Sr#','Date','Description','Debit','Credit','Balance']);
+    computeAccount(acc).rows.forEach(r=> rows.push([r.srNo, r.date, r.description, r.debit||'', r.credit||'', r.balance]));
+  } else {
+    rows.push(['Account Name','Type','Total Balance']);
+    state.accounts.forEach(a=> rows.push([a.name, goldenRule(a.type).label, computeAccount(a).totalBalance]));
+  }
+  const csv = rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+  const safeName = (state.companyName||'ledger').replace(/[^\w\- ]/g,'').trim() || 'ledger';
+  downloadTextFile(`${safeName}_${currentTitle().replace(/[^\w\- ]/g,'').trim()}.csv`, 'text/csv', csv);
+  showToast('CSV exported.', 'success');
+}
+
+/* ============ EVENTS ============ */
+function attachEvents(){
+  const sidebarToggle = document.getElementById('btnSidebarToggle');
+  const sidebarEl = document.getElementById('appSidebar');
+  const backdropEl = document.getElementById('sidebarBackdrop');
+  function toggleSidebar(){
+    if(sidebarEl) sidebarEl.classList.toggle('open');
+    if(backdropEl) backdropEl.classList.toggle('open');
+  }
+  function closeSidebar(){
+    if(sidebarEl) sidebarEl.classList.remove('open');
+    if(backdropEl) backdropEl.classList.remove('open');
+  }
+  if(sidebarToggle){ sidebarToggle.addEventListener('click', toggleSidebar); }
+  if(backdropEl){ backdropEl.addEventListener('click', closeSidebar); }
+  // Close the mobile sidebar drawer after picking a nav item
+  document.querySelectorAll('.sidebar .tab').forEach(el=>{
+    el.addEventListener('click', closeSidebar);
+  });
+
+  const themeToggle = document.getElementById('themeToggle');
+  if(themeToggle) themeToggle.addEventListener('click', toggleTheme);
+
+  const btnNotifications = document.getElementById('btnNotifications');
+  if(btnNotifications) btnNotifications.addEventListener('click', ()=>{
+    const balanced = computeBalanceSheet().balanced;
+    showToast(balanced ? 'Books are balanced — all good.' : 'Books are out of balance — check the Balance Sheet tab.', balanced ? 'success' : 'error');
+  });
+
+  document.getElementById('companyNameInput').addEventListener('change', (e)=>{
+    state.companyName = e.target.value || 'My Company';
+    saveState();
+  });
+
+  document.getElementById('ledgerDateInput').addEventListener('change', (e)=>{
+    state.ledgerDate = e.target.value || todayISO();
+    saveState();
+    render();
+  });
+
+  const currencySelect = document.getElementById('currencySelect');
+  if(currencySelect) currencySelect.addEventListener('change', (e)=>{
+    state.currency = e.target.value;
+    saveState();
+    render();
+  });
+
+  const btnCSV = document.getElementById('btnExportCSV');
+  if(btnCSV) btnCSV.addEventListener('click', exportCSV);
+  const btnBackup = document.getElementById('btnBackup');
+  if(btnBackup) btnBackup.addEventListener('click', backupJSON);
+  const btnRestore = document.getElementById('btnRestore');
+  const restoreFile = document.getElementById('restoreFile');
+  if(btnRestore && restoreFile){
+    btnRestore.addEventListener('click', ()=> restoreFile.click());
+    restoreFile.addEventListener('change', (e)=>{
+      if(e.target.files[0]) restoreJSON(e.target.files[0]);
+      e.target.value = '';
+    });
+  }
+
+  const btnNewJournal = document.getElementById('btnNewJournal');
+  if(btnNewJournal) btnNewJournal.addEventListener('click', modalJournalVoucher);
+  document.querySelectorAll('[data-deljournal]').forEach(el=>{
+    el.addEventListener('click', ()=> modalDeleteJournalVoucher(el.dataset.deljournal));
+  });
+
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      const t = tab.dataset.tab;
+      if(t==='search') return; // already on search results, nothing to switch
+      view.search='';
+      if(t==='master' || t==='trial' || t==='pnl' || t==='bsheet' || t==='dashboard' || t==='journal'){ view.mode=t; view.accountId=null; }
+      else { view.mode='account'; view.accountId=t; }
+      render();
+    });
+  });
+
+  document.getElementById('btnNewAccount').addEventListener('click', modalNewAccount);
+  document.getElementById('btnPrint').addEventListener('click', ()=> window.print());
+  document.getElementById('btnExportPDF').addEventListener('click', ()=> exportSnapshot('pdf'));
+  document.getElementById('btnExportJPEG').addEventListener('click', ()=> exportSnapshot('jpeg'));
+
+  document.getElementById('btnGlobalSearch').addEventListener('click', ()=>{
+    view.mode = 'search';
+    render();
+  });
+
+  document.getElementById('btnLogout').addEventListener('click', ()=> auth.signOut());
+
+  document.getElementById('searchInput').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){ view.mode='search'; render(); }
+  });
+
+  document.getElementById('searchInput').addEventListener('input', (e)=>{
+    view.search = e.target.value;
+    view.masterPage = 1; view.acctPage = 1;
+    render();
+    // restore focus & cursor after re-render
+    const inp = document.getElementById('searchInput');
+    inp.focus();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+  });
+
+  // Sortable column headers (Master Sheet only — the account ledger stays in entry order
+  // since its Balance column is a running total)
+  document.querySelectorAll('[data-sortkey]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const [prefix, key] = el.dataset.sortkey.split(':');
+      const field = prefix+'Sort';
+      const cur = view[field] || { key:null, dir:1 };
+      if(cur.key===key) cur.dir = -cur.dir; else { cur.key = key; cur.dir = 1; }
+      view[field] = cur;
+      render();
+    });
+  });
+
+  // Pagination: prev/next + rows-per-page
+  document.querySelectorAll('[data-pgaction]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const [prefix, action] = el.dataset.pgaction.split(':');
+      const key = prefix+'Page';
+      const cur = view[key] || 1;
+      view[key] = action==='prev' ? Math.max(1, cur-1) : cur+1;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-pgsize]').forEach(el=>{
+    el.addEventListener('change', ()=>{
+      const prefix = el.dataset.pgsize;
+      view[prefix+'PageSize'] = el.value==='all' ? 'all' : Number(el.value);
+      view[prefix+'Page'] = 1;
+      render();
+    });
+  });
+
+  // Master panel actions
+  document.querySelectorAll('[data-open]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-rename]') || e.target.closest('[data-delacct]')) return;
+      view.mode='account'; view.accountId=el.dataset.open; view.search='';
+      render();
+    });
+  });
+  document.querySelectorAll('[data-rename]').forEach(el=>{
+    el.addEventListener('click', (e)=>{ e.stopPropagation(); modalRenameAccount(el.dataset.rename); });
+  });
+  document.querySelectorAll('[data-delacct]').forEach(el=>{
+    el.addEventListener('click', (e)=>{ e.stopPropagation(); modalDeleteAccount(el.dataset.delacct); });
+  });
+
+  // Account panel actions
+  const addBtn = document.querySelector('[data-addentry]');
+  if(addBtn) addBtn.addEventListener('click', ()=> modalEntry(addBtn.dataset.addentry, null));
+  document.querySelectorAll('[data-editentry]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const [accId, entryId] = el.dataset.editentry.split(':');
+      modalEntry(accId, entryId);
+    });
+  });
+  document.querySelectorAll('[data-delentry]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const [accId, entryId] = el.dataset.delentry.split(':');
+      modalDeleteEntry(accId, entryId);
+    });
+  });
+}
+
+/* ============ PDF / IMAGE EXPORT ============ */
+function currentTitle(){
+  if(view.mode==='dashboard') return 'Dashboard';
+  if(view.mode==='journal') return 'Journal Voucher';
+  if(view.mode==='master') return 'Master Sheet';
+  if(view.mode==='trial') return 'Trial Balance';
+  if(view.mode==='pnl') return 'Profit and Loss Statement';
+  if(view.mode==='bsheet') return 'Balance Sheet';
+  const acc = state.accounts.find(a=>a.id===view.accountId);
+  return acc ? acc.name : 'Ledger';
+}
+
+function exportSnapshot(format){
+  const btn = format==='pdf' ? document.getElementById('btnExportPDF') : document.getElementById('btnExportJPEG');
+  const originalLabel = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-inline"></span>Preparing…';
+  btn.disabled = true;
+
+  const mastheadSrc = document.querySelector('.masthead');
+  const panelSrc = document.querySelector('.panel');
+  if(!panelSrc){ btn.innerHTML = originalLabel; btn.disabled=false; return; }
+
+  // Build an offscreen, clean copy (no buttons / edit icons) sized to its full content width
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;background:#fff;padding:24px;width:900px;font-family:'+getComputedStyle(document.body).fontFamily+';';
+  wrapper.appendChild(mastheadSrc.cloneNode(true));
+  const panelClone = panelSrc.cloneNode(true);
+  wrapper.appendChild(panelClone);
+  wrapper.querySelectorAll('.btn, .icon-btn, th.actions, td.actions, col.col-actions, .gt-breakdown, .acc-type-badge, .rule-banner, .sidebar-toggle-mobile, .icon-circle-btn, .profile-chip, .topbar-actions, .table-toolbar, .pagination, .app-tagline, .currency-select').forEach(el=>el.remove());
+  wrapper.querySelectorAll('table').forEach(t=>{ t.style.tableLayout = 'auto'; t.style.width = '100%'; });
+  wrapper.querySelectorAll('.print-date-tag').forEach(el=>{ el.style.display='block'; });
+  const nameInput = wrapper.querySelector('.biz-name-input');
+  if(nameInput){
+    const h1 = document.createElement('div');
+    h1.textContent = state.companyName;
+    h1.style.cssText = 'font-family:var(--serif, Georgia, serif);font-weight:600;font-size:26px;';
+    nameInput.replaceWith(h1);
+  }
+  const dateInput = wrapper.querySelector('.ledger-date-input');
+  if(dateInput){
+    const span = document.createElement('span');
+    span.textContent = 'As of ' + fmtDate(state.ledgerDate);
+    dateInput.replaceWith(span);
+  }
+  document.body.appendChild(wrapper);
+
+  html2canvas(wrapper, {scale:2, backgroundColor:'#ffffff', windowWidth: wrapper.scrollWidth}).then(canvas=>{
+    document.body.removeChild(wrapper);
+    const safeName = (state.companyName||'ledger').replace(/[^\w\- ]/g,'').trim() || 'ledger';
+    const titlePart = currentTitle().replace(/[^\w\- ]/g,'').trim() || 'sheet';
+
+    if(format==='jpeg'){
+      const link = document.createElement('a');
+      link.download = `${safeName}_${titlePart}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+    } else {
+      const { jsPDF } = window.jspdf;
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF({ orientation: canvas.width>canvas.height?'l':'p', unit:'px', format:[canvas.width, canvas.height] });
+      pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`${safeName}_${titlePart}.pdf`);
+    }
+    showToast(format==='jpeg' ? 'Image exported.' : 'PDF exported.', 'success');
+    btn.innerHTML = originalLabel;
+    btn.disabled = false;
+  }).catch(err=>{
+    console.error(err);
+    if(wrapper.parentNode) document.body.removeChild(wrapper);
+    showToast('Sorry, the export could not be generated.', 'error');
+    btn.innerHTML = originalLabel;
+    btn.disabled = false;
+  });
+}
+
+/* ============ INIT ============ */
+initAuth();
+</script>
+</body>
+</html>
